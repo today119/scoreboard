@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>라이브 스코어보드</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* ── 공통 ──────────────────────────────────────────────
+     배경은 반드시 투명. OBS 브라우저 소스·카메라파이 웹 오버레이가
+     이 페이지를 영상 위에 얹기 때문에 흰 바탕이 깔리면 화면을 가린다. */
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;padding:0;background:transparent;font-family:Inter,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  .tab{font-variant-numeric:tabular-nums}
+
+  /* ── 오버레이 ─────────────────────────────────────── */
+  #sbStage{position:fixed;inset:0;overflow:hidden;pointer-events:none}
+  .anchor{position:fixed;transition:transform .2s ease-out}
+  .board{
+    display:flex;align-items:stretch;min-height:90px;
+    background:rgba(2,6,23,.95);backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.10);border-radius:18px;overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,.5);
+  }
+  .side{display:flex;align-items:center;gap:16px;padding:12px 24px;min-width:190px}
+  .side.away{text-align:right}
+  .bar{width:10px;height:40px;border-radius:99px;flex:none}
+  .sets{display:flex;flex-direction:column;gap:4px}
+  .dot{width:10px;height:10px;border-radius:99px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.6);transition:all .3s}
+  .dot.on{background:#FACC15;border-color:#FDE68A;box-shadow:0 0 8px rgba(250,204,21,.6)}
+  .tname{font-size:26px;font-weight:900;color:#fff;text-transform:uppercase;line-height:1;letter-spacing:-.02em;
+         text-shadow:0 2px 6px rgba(0,0,0,.5);white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
+  .score{font-size:42px;font-weight:900;color:#fff;line-height:1}
+  .side.home .score{margin-left:auto}
+  .side.away .score{margin-right:auto}
+  .serve{width:13px;height:13px;border-radius:99px;background:#FACC15;border:2px solid #fff;
+         box-shadow:0 0 12px rgba(250,204,21,.6);flex:none;animation:pulse 1.6s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+  .center{background:rgba(0,0,0,.6);padding:0 30px;border-left:1px solid rgba(255,255,255,.15);
+          border-right:1px solid rgba(255,255,255,.15);display:flex;flex-direction:column;
+          justify-content:center;align-items:center;min-width:150px;gap:2px}
+  .stage{font-size:11px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:.18em}
+  .period{font-size:17px;font-weight:900;color:#3B82F6;letter-spacing:.2em;line-height:1}
+  .timer{font-size:24px;font-weight:800;color:#fff;font-family:ui-monospace,Menlo,monospace;line-height:1.1}
+  .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
+         letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+
+  /* 경기 종료 요약 */
+  .summary{background:rgba(0,20,41,.95);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
+           border:1px solid rgba(255,255,255,.1);box-shadow:0 40px 100px rgba(0,0,0,.8);min-width:360px}
+  .summary .hd{font-size:10px;font-weight:900;color:rgba(255,255,255,.25);text-transform:uppercase;
+               letter-spacing:.2em;font-style:italic}
+  .srow{display:grid;gap:10px;align-items:center;height:36px}
+  .sname{font-size:14px;font-weight:900;color:#fff;font-style:italic;text-transform:uppercase;
+         white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .sv{font-size:26px;font-weight:900;text-align:center;line-height:1;color:rgba(255,255,255,.2)}
+  .sv.win{color:#FACC15}
+  .sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
+  .sethd{font-size:10px;font-weight:700;color:rgba(96,165,250,.5);text-align:center}
+
+  /* ── 조작 화면 ─────────────────────────────────────── */
+  body.control{background:#0B1220;color:#E5E7EB;padding:14px;padding-bottom:40px}
+  .wrap{max-width:900px;margin:0 auto}
+  h1{font-size:17px;margin:0 0 4px;font-weight:900}
+  .sub{color:#94A3B8;font-size:13px;margin-bottom:14px;line-height:1.6}
+  .card{background:#111A2E;border:1px solid #1F2A44;border-radius:16px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;margin:0 0 10px;color:#93C5FD;font-weight:800;letter-spacing:.03em}
+  .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .team{background:#0E1729;border:1px solid #1F2A44;border-radius:14px;padding:12px}
+  .team .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+  .team input[type=text]{flex:1;min-width:0;background:#0B1220;border:1px solid #26334D;color:#fff;
+    border-radius:10px;padding:10px;font-size:15px;font-weight:800}
+  .team input[type=color]{width:38px;height:38px;border:1px solid #26334D;border-radius:10px;background:#0B1220;padding:2px;flex:none}
+  .big{font-size:54px;font-weight:900;text-align:center;line-height:1;margin:6px 0 10px}
+  .row{display:flex;gap:8px}
+  button{font-family:inherit;font-weight:800;border-radius:12px;border:1px solid #26334D;background:#18233B;
+         color:#E5E7EB;font-size:15px;padding:14px;cursor:pointer;flex:1;min-height:52px}
+  button:active{opacity:.7}
+  button.plus{background:#1D4ED8;border-color:#3B82F6;color:#fff;font-size:22px}
+  button.minus{background:#1F2937;font-size:22px;max-width:74px}
+  button.on{background:#166534;border-color:#22C55E;color:#DCFCE7}
+  button.warn{background:#7F1D1D;border-color:#991B1B;color:#FEE2E2}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  label.f{display:block;font-size:12px;color:#94A3B8;margin:10px 0 5px;font-weight:700}
+  input.t,select.t{width:100%;background:#0B1220;border:1px solid #26334D;color:#fff;border-radius:10px;
+    padding:11px;font-size:15px;font-family:inherit}
+  .hint{color:#94A3B8;font-size:12.5px;line-height:1.7;margin-top:10px}
+  .hint b{color:#E5E7EB}
+  .urlbox{background:#0B1220;border:1px solid #26334D;border-radius:10px;padding:10px;font-size:12px;
+    word-break:break-all;color:#93C5FD;margin-top:6px;font-family:ui-monospace,Menlo,monospace}
+  .prev{background:#0B1220;border:1px solid #1F2A44;border-radius:14px;padding:16px;overflow-x:auto}
+  .prevnote{font-size:11px;color:#64748B;margin-bottom:8px}
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1E293B;border:1px solid #334155;
+    color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
+    transition:opacity .2s;z-index:99;white-space:pre-line;text-align:center}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ─────────────────────────────────────────────────────────
+   주소 옵션
+     ?view=overlay|control   기본 control
+     ?pos=TL|TC|TR|BL|BC|BR  오버레이 위치 (기본 BL)
+     ?scale=1.2              오버레이 크기
+     ?room=abc               (예정) 다른 기기에서 조작
+   ───────────────────────────────────────────────────────── */
+var Q = new URLSearchParams(location.search);
+var VIEW  = (Q.get("view")||"control").toLowerCase();
+var POS   = (Q.get("pos")||"BL").toUpperCase();
+var SCALE = parseFloat(Q.get("scale")||"1") || 1;
+var ROOM  = Q.get("room")||"";
+var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
+
+var DEF = {
+  sport:"VOLLEYBALL",
+  home:{name:"HOME", color:"#3B82F6", score:0, sets:0, hist:[], serve:true},
+  away:{name:"AWAY", color:"#EF4444", score:0, sets:0, hist:[], serve:false},
+  stage:"", period:"SET 1",
+  showTimer:false, timerRunning:false, timerBase:0, timerAcc:0,
+  tournament:"", channel:"",
+  over:false, setTarget:25, bestOf:3
+};
+
+function load(){
+  try{
+    var v = JSON.parse(localStorage.getItem(KEY));
+    if(!v || typeof v!=="object") return JSON.parse(JSON.stringify(DEF));
+    var d = JSON.parse(JSON.stringify(DEF));
+    for(var k in v) d[k] = v[k];
+    d.home = Object.assign({}, DEF.home, v.home||{});
+    d.away = Object.assign({}, DEF.away, v.away||{});
+    return d;
+  }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
+}
+var S = load();
+
+/* ── 같은 브라우저 안에서 창끼리 실시간 반영 ──
+   조작 창에서 바꾸면 오버레이 창이 즉시 따라온다.
+   (OBS 브라우저 소스는 별도 브라우저라 여기까진 안 온다 → ?room= 서버 연동은 다음 단계) */
+var CH = null;
+try{ CH = new BroadcastChannel("sb_"+(ROOM||"local")); }catch(e){}
+function save(push){
+  try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
+  if(push !== false && CH) try{ CH.postMessage(S); }catch(e){}
+}
+if(CH) CH.onmessage = function(e){
+  if(!e.data) return;
+  S = e.data; render();
+};
+window.addEventListener("storage", function(e){          // BroadcastChannel 없는 기기 대비
+  if(e.key === KEY && e.newValue){
+    try{ S = JSON.parse(e.newValue); render(); }catch(_){}
+  }
+});
+
+/* ── 타이머 ── */
+function timerMs(){ return S.timerAcc + (S.timerRunning ? (Date.now()-S.timerBase) : 0); }
+function fmt(ms){
+  var s = Math.max(0, Math.floor(ms/1000));
+  var m = Math.floor(s/60), ss = s%60;
+  return (m<10?"0":"")+m+":"+(ss<10?"0":"")+ss;
+}
+
+/* ── 오버레이 ── */
+function posStyle(el){
+  var st = { transformOrigin:"", transform:"" };
+  var v = POS[0]==="T" ? "top" : "bottom";
+  var h = POS[1]==="L" ? "left" : (POS[1]==="R" ? "right" : "center");
+  el.style[v] = "40px";
+  var tr = "";
+  if(h==="center"){ el.style.left="50%"; tr="translateX(-50%) "; }
+  else el.style[h] = "40px";
+  el.style.transformOrigin = v+" "+(h==="center"?"center":h);
+  el.style.transform = tr + "scale("+SCALE+")";
+}
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
+  return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+function dots(n){
+  var o="";
+  for(var i=1;i<=3;i++) o += '<div class="dot'+(i<=n?" on":"")+'"></div>';
+  return '<div class="sets">'+o+'</div>';
+}
+function boardHTML(){
+  var vb = S.sport === "VOLLEYBALL";
+  if(S.over){
+    var n = Math.max(S.home.hist.length, S.away.hist.length, 1);
+    var cols = "120px repeat("+n+",44px)";
+    var hd = "", hr = "", ar = "";
+    for(var i=0;i<n;i++){
+      hd += '<div class="sethd">SET '+(i+1)+'</div>';
+      var a = S.home.hist[i]||0, b = S.away.hist[i]||0;
+      hr += '<div class="sv'+(a>b?" win":"")+' tab">'+a+'</div>';
+      ar += '<div class="sv'+(b>a?" win":"")+' tab">'+b+'</div>';
+    }
+    return '<div class="summary">'+
+      '<div class="srow" style="grid-template-columns:'+cols+';height:auto;margin-bottom:6px">'+
+        '<div class="hd">FINAL SCORE</div>'+hd+'</div>'+
+      '<div class="srow" style="grid-template-columns:'+cols+'"><div class="sname">'+esc(S.home.name)+'</div>'+hr+'</div>'+
+      '<div class="sep"></div>'+
+      '<div class="srow" style="grid-template-columns:'+cols+'"><div class="sname">'+esc(S.away.name)+'</div>'+ar+'</div>'+
+    '</div>';
+  }
+  return '<div class="board">'+
+    '<div class="side home">'+
+      '<div class="bar" style="background:'+esc(S.home.color)+'"></div>'+
+      (vb?dots(S.home.sets):"")+
+      '<div class="tname">'+esc(S.home.name)+'</div>'+
+      (S.home.serve?'<div class="serve"></div>':"")+
+      '<div class="score tab">'+S.home.score+'</div>'+
+    '</div>'+
+    '<div class="center">'+
+      '<div style="display:flex;align-items:center;gap:8px">'+
+        (S.stage?'<span class="stage">'+esc(S.stage)+'</span><span style="color:#fff;opacity:.3;font-size:10px">/</span>':"")+
+        '<span class="period">'+esc(S.period)+'</span>'+
+      '</div>'+
+      (S.showTimer?'<div class="timer tab">'+fmt(timerMs())+'</div>':"")+
+    '</div>'+
+    '<div class="side away">'+
+      '<div class="score tab">'+S.away.score+'</div>'+
+      (S.away.serve?'<div class="serve"></div>':"")+
+      '<div class="tname">'+esc(S.away.name)+'</div>'+
+      (vb?dots(S.away.sets):"")+
+      '<div class="bar" style="background:'+esc(S.away.color)+'"></div>'+
+    '</div>'+
+  '</div>';
+}
+function brandHTML(){
+  var o = "";
+  if(S.tournament) o += '<div class="anchor" id="bTour"><div class="brand" style="background:#0f172a;color:#fff">'+esc(S.tournament)+'</div></div>';
+  if(S.channel)    o += '<div class="anchor" id="bCh"><div class="brand" style="background:#fff;color:#0f172a">'+esc(S.channel)+'</div></div>';
+  return o;
+}
+
+function renderOverlay(){
+  document.getElementById("app").innerHTML =
+    '<div id="sbStage">'+brandHTML()+'<div class="anchor" id="bd">'+boardHTML()+'</div></div>';
+  var bd = document.getElementById("bd"); posStyle(bd);
+  var t = document.getElementById("bTour");
+  if(t){ t.style.top="40px"; t.style.right="40px"; t.style.transformOrigin="top right"; t.style.transform="scale("+SCALE+")"; }
+  var c = document.getElementById("bCh");
+  if(c){ c.style.top="40px"; c.style.left="40px"; c.style.transformOrigin="top left"; c.style.transform="scale("+SCALE+")"; }
+}
+
+/* ── 조작 화면 ── */
+function teamHTML(k){
+  var t = S[k], ko = (k==="home"?"왼쪽 팀":"오른쪽 팀");
+  return '<div class="team">'+
+    '<div class="top">'+
+      '<input type="color" data-c="'+k+'" value="'+esc(t.color)+'">'+
+      '<input type="text" data-n="'+k+'" value="'+esc(t.name)+'" maxlength="14" placeholder="'+ko+'">'+
+    '</div>'+
+    '<div class="big tab" style="color:'+esc(t.color)+'">'+t.score+'</div>'+
+    '<div class="row">'+
+      '<button class="minus" data-s="'+k+'|-1">−</button>'+
+      '<button class="plus"  data-s="'+k+'|1">+ 1점</button>'+
+    '</div>'+
+    '<div class="row" style="margin-top:8px">'+
+      '<button data-serve="'+k+'" class="'+(t.serve?"on":"")+'">'+(t.serve?"🏐 서브권":"서브권 주기")+'</button>'+
+      '<button data-set="'+k+'">세트 획득 '+t.sets+'</button>'+
+    '</div>'+
+  '</div>';
+}
+function renderControl(){
+  var base = location.origin + location.pathname;
+  var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE;
+  document.getElementById("app").innerHTML =
+  '<div class="wrap">'+
+    '<h1>🏐 라이브 스코어보드 — 조작</h1>'+
+    '<div class="sub">여기서 누르면 <b>오버레이 창이 바로 바뀝니다.</b></div>'+
+
+    '<div class="card"><h2>점수</h2><div class="teams">'+teamHTML("home")+teamHTML("away")+'</div>'+
+      '<div class="grid3" style="margin-top:10px">'+
+        '<button id="swap">↔ 좌우 바꾸기</button>'+
+        '<button id="endset">세트 종료</button>'+
+        '<button id="over" class="'+(S.over?"on":"")+'">'+(S.over?"경기중으로":"경기 종료")+'</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="card"><h2>미리보기</h2>'+
+      '<div class="prevnote">실제 송출 화면과 같습니다 (배경은 투명하게 나갑니다)</div>'+
+      '<div class="prev">'+boardHTML()+'</div>'+
+    '</div>'+
+
+    '<div class="card"><h2>경기 정보</h2>'+
+      '<div class="grid2">'+
+        '<div><label class="f">단계 (예: 준결승)</label><input class="t" id="fStage" value="'+esc(S.stage)+'" maxlength="10"></div>'+
+        '<div><label class="f">현재 (예: SET 2)</label><input class="t" id="fPeriod" value="'+esc(S.period)+'" maxlength="10"></div>'+
+      '</div>'+
+      '<div class="grid2">'+
+        '<div><label class="f">대회명 (오른쪽 위)</label><input class="t" id="tour" value="'+esc(S.tournament)+'" maxlength="24"></div>'+
+        '<div><label class="f">채널명 (왼쪽 위)</label><input class="t" id="ch" value="'+esc(S.channel)+'" maxlength="24"></div>'+
+      '</div>'+
+      '<label class="f">종목</label>'+
+      '<select class="t" id="sport">'+
+        '<option value="VOLLEYBALL"'+(S.sport==="VOLLEYBALL"?" selected":"")+'>배구 (세트 표시)</option>'+
+        '<option value="GENERAL"'+(S.sport==="GENERAL"?" selected":"")+'>일반 (축구·농구 등)</option>'+
+      '</select>'+
+      '<div class="grid2" style="margin-top:10px">'+
+        '<button id="tgTimer" class="'+(S.showTimer?"on":"")+'">'+(S.showTimer?"⏱ 시간 표시 켬":"시간 표시 끔")+'</button>'+
+        '<button id="tgRun">'+(S.timerRunning?"⏸ 시간 멈춤":"▶ 시간 시작")+'</button>'+
+      '</div>'+
+      '<div class="grid2" style="margin-top:8px">'+
+        '<button id="rstTimer">시간 0으로</button>'+
+        '<button id="reset" class="warn">전부 초기화</button>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="card"><h2>송출에 넣을 주소</h2>'+
+      '<div class="urlbox" id="ovlUrl">'+esc(ovl)+'</div>'+
+      '<div class="grid2" style="margin-top:8px">'+
+        '<button id="copyUrl">📋 주소 복사</button>'+
+        '<button id="openOvl">🖥 오버레이 창 열기</button>'+
+      '</div>'+
+      '<label class="f">위치</label>'+
+      '<select class="t" id="pos">'+
+        ["TL","TC","TR","BL","BC","BR"].map(function(p){
+          var ko={TL:"왼쪽 위",TC:"가운데 위",TR:"오른쪽 위",BL:"왼쪽 아래",BC:"가운데 아래",BR:"오른쪽 아래"}[p];
+          return '<option value="'+p+'"'+(POS===p?" selected":"")+'>'+ko+'</option>';
+        }).join("")+
+      '</select>'+
+      '<label class="f">크기 ('+SCALE.toFixed(2)+'배)</label>'+
+      '<input class="t" type="range" id="scale" min="0.5" max="2" step="0.05" value="'+SCALE+'">'+
+      '<div class="hint">'+
+        '<b>OBS</b> : 소스 추가 → 브라우저 → 위 주소 붙여넣기 → 너비 1920 높이 1080<br>'+
+        '<b>카메라파이</b> : 오버레이 → 웹 → 위 주소 붙여넣기<br>'+
+        '⚠️ <b>지금은 같은 브라우저의 창끼리만</b> 실시간으로 이어집니다. '+
+        'OBS 브라우저 소스나 폰에서 따로 열면 아직 안 따라옵니다 — 그건 다음 단계에서 붙입니다.'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+
+  bindControl();
+}
+
+function bindControl(){
+  var $ = function(id){ return document.getElementById(id); };
+  document.querySelectorAll("[data-s]").forEach(function(b){
+    b.onclick = function(){
+      var p = b.dataset.s.split("|"), t = S[p[0]], d = +p[1];
+      t.score = Math.max(0, t.score + d);
+      if(d > 0){ S.home.serve = (p[0]==="home"); S.away.serve = (p[0]==="away"); }  // 득점한 팀이 서브
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-serve]").forEach(function(b){
+    b.onclick = function(){
+      var k = b.dataset.serve;
+      S.home.serve = (k==="home"); S.away.serve = (k==="away");
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-set]").forEach(function(b){
+    b.onclick = function(){
+      var t = S[b.dataset.set];
+      t.sets = (t.sets + 1) % 4;
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-n]").forEach(function(i){
+    i.oninput = function(){ S[i.dataset.n].name = i.value; save(); renderOverlayPreviewOnly(); };
+  });
+  document.querySelectorAll("[data-c]").forEach(function(i){
+    i.oninput = function(){ S[i.dataset.c].color = i.value; save(); render(); };
+  });
+
+  $("swap").onclick = function(){
+    var h = S.home; S.home = S.away; S.away = h;
+    save(); render(); toast("좌우를 바꿨습니다");
+  };
+  $("endset").onclick = function(){
+    if(S.home.score===0 && S.away.score===0){ toast("점수가 0:0입니다", 1800); return; }
+    S.home.hist.push(S.home.score); S.away.hist.push(S.away.score);
+    if(S.home.score > S.away.score) S.home.sets++; else if(S.away.score > S.home.score) S.away.sets++;
+    S.home.score = 0; S.away.score = 0;
+    var n = S.home.hist.length + 1;
+    S.period = "SET " + n;
+    save(); render(); toast("세트를 저장했습니다\nSET "+n+" 시작");
+  };
+  $("over").onclick = function(){
+    S.over = !S.over;
+    if(S.over && (S.home.score||S.away.score)){        // 마지막 세트가 안 닫혔으면 닫아준다
+      S.home.hist.push(S.home.score); S.away.hist.push(S.away.score);
+      if(S.home.score > S.away.score) S.home.sets++; else if(S.away.score > S.home.score) S.away.sets++;
+      S.home.score = 0; S.away.score = 0;
+    }
+    save(); render();
+  };
+
+  [["fStage","stage"],["fPeriod","period"]].forEach(function(pair){
+    $(pair[0]).oninput = function(){ S[pair[1]] = $(pair[0]).value; save(); renderOverlayPreviewOnly(); };
+  });
+  $("tour").oninput = function(){ S.tournament = $("tour").value; save(); };
+  $("ch").oninput   = function(){ S.channel    = $("ch").value;   save(); };
+  $("sport").onchange = function(){ S.sport = $("sport").value; save(); render(); };
+
+  $("tgTimer").onclick = function(){ S.showTimer = !S.showTimer; save(); render(); };
+  $("tgRun").onclick = function(){
+    if(S.timerRunning){ S.timerAcc = timerMs(); S.timerRunning = false; }
+    else { S.timerBase = Date.now(); S.timerRunning = true; }
+    save(); render();
+  };
+  $("rstTimer").onclick = function(){ S.timerAcc = 0; S.timerBase = Date.now(); save(); render(); };
+  $("reset").onclick = function(){
+    if(!confirm("팀 이름·점수·세트를 전부 처음 상태로 돌립니다.")) return;
+    S = JSON.parse(JSON.stringify(DEF)); save(); render(); toast("초기화했습니다");
+  };
+
+  $("pos").onchange  = function(){ POS = $("pos").value; refreshUrl(); render(); };
+  $("scale").oninput = function(){ SCALE = parseFloat($("scale").value)||1; refreshUrl(); render(); };
+  $("copyUrl").onclick = function(){
+    var t = $("ovlUrl").textContent;
+    if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast("복사했습니다"); })
+      .catch(function(){ toast("복사 실패 — 길게 눌러 복사하세요", 3000); });
+    else toast("길게 눌러 복사하세요", 3000);
+  };
+  $("openOvl").onclick = function(){
+    window.open($("ovlUrl").textContent, "sbOverlay", "width=1280,height=720");
+  };
+}
+function refreshUrl(){
+  var base = location.origin + location.pathname;
+  var u = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE;
+  var el = document.getElementById("ovlUrl"); if(el) el.textContent = u;
+  history.replaceState(null, "", base + "?view=control&pos=" + POS + "&scale=" + SCALE);
+}
+/* 이름·단계만 바뀔 때는 입력 포커스를 잃지 않게 미리보기만 다시 그린다 */
+function renderOverlayPreviewOnly(){
+  var p = document.querySelector(".prev");
+  if(p) p.innerHTML = boardHTML();
+}
+
+var toastTimer = null;
+function toast(msg, ms){
+  var el = document.getElementById("toast");
+  el.textContent = msg; el.className = "toast show";
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.className = "toast"; }, ms||1800);
+}
+
+function render(){
+  if(VIEW === "overlay"){ document.body.className = ""; renderOverlay(); }
+  else { document.body.className = "control"; renderControl(); }
+}
+render();
+
+/* 시간 표시가 켜져 있으면 1초마다 갱신 */
+setInterval(function(){
+  if(!S.showTimer) return;
+  if(VIEW === "overlay"){ var t = document.querySelector(".timer"); if(t) t.textContent = fmt(timerMs()); }
+  else { var p = document.querySelector(".prev .timer"); if(p) p.textContent = fmt(timerMs()); }
+}, 500);
+})();
+</script>
+</body>
+</html>
