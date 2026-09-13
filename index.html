@@ -6,91 +6,135 @@
 <title>라이브 스코어보드</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;800;900&display=swap" rel="stylesheet">
 <style>
-  /* ── 공통 ──────────────────────────────────────────────
+  /* ── 색 팔레트 ───────────────────────────────────────
+     dark = 기본. light 는 body.light 로 갈아끼운다.
+     오버레이(점수판)와 조작 화면이 같은 변수를 쓴다. */
+  :root{
+    /* 점수판 */
+    --bd-bg:rgba(2,6,23,.95);      --bd-line:rgba(255,255,255,.10);
+    --bd-text:#fff;                --bd-shadow:0 40px 80px rgba(0,0,0,.5);
+    --bd-center:rgba(0,0,0,.6);    --bd-center-line:rgba(255,255,255,.15);
+    --bd-period:#3B82F6;           --bd-stage:#fff;
+    --bd-accent:#FACC15;           --bd-accent-line:#FDE68A;
+    --bd-dot-off:rgba(0,0,0,.6);   --bd-dot-line:rgba(255,255,255,.3);
+    --bd-name-shadow:0 2px 6px rgba(0,0,0,.5);
+    --sum-bg:rgba(0,20,41,.95);    --sum-dim:rgba(255,255,255,.2);
+    --sum-hd:rgba(255,255,255,.25);--sum-sep:rgba(255,255,255,.06);
+    --sum-sethd:rgba(96,165,250,.5);
+    /* 조작 화면 */
+    --ui-bg:#0B1220; --ui-fg:#E5E7EB; --ui-sub:#94A3B8;
+    --ui-card:#111A2E; --ui-card2:#0E1729; --ui-line:#1F2A44;
+    --ui-input:#0B1220; --ui-input-line:#26334D;
+    --ui-btn:#18233B; --ui-btn-sub:#1F2937; --ui-h2:#93C5FD; --ui-url:#93C5FD;
+  }
+  body.light{
+    --bd-bg:rgba(255,255,255,.95);  --bd-line:rgba(0,0,0,.08);
+    --bd-text:#0F172A;              --bd-shadow:0 30px 60px rgba(0,0,0,.28);
+    --bd-center:rgba(15,23,42,.06); --bd-center-line:rgba(0,0,0,.10);
+    --bd-period:#1D4ED8;            --bd-stage:#0F172A;
+    --bd-accent:#F59E0B;            --bd-accent-line:#B45309;
+    --bd-dot-off:rgba(15,23,42,.10);--bd-dot-line:rgba(15,23,42,.25);
+    --bd-name-shadow:none;
+    --sum-bg:rgba(255,255,255,.96); --sum-dim:rgba(15,23,42,.22);
+    --sum-hd:rgba(15,23,42,.35);    --sum-sep:rgba(15,23,42,.08);
+    --sum-sethd:rgba(29,78,216,.55);
+    --ui-bg:#F1F5F9; --ui-fg:#0F172A; --ui-sub:#64748B;
+    --ui-card:#FFFFFF; --ui-card2:#F8FAFC; --ui-line:#E2E8F0;
+    --ui-input:#FFFFFF; --ui-input-line:#CBD5E1;
+    --ui-btn:#E2E8F0; --ui-btn-sub:#CBD5E1; --ui-h2:#1D4ED8; --ui-url:#1D4ED8;
+  }
+
+  /* ── 공통 ──
      배경은 반드시 투명. OBS 브라우저 소스·카메라파이 웹 오버레이가
-     이 페이지를 영상 위에 얹기 때문에 흰 바탕이 깔리면 화면을 가린다. */
+     이 페이지를 영상 위에 얹기 때문에 바탕이 깔리면 화면을 가린다. */
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;padding:0;background:transparent;font-family:Inter,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
   .tab{font-variant-numeric:tabular-nums}
 
-  /* ── 오버레이 ─────────────────────────────────────── */
+  /* ── 오버레이 ── */
   #sbStage{position:fixed;inset:0;overflow:hidden;pointer-events:none}
   .anchor{position:fixed;transition:transform .2s ease-out}
   .board{
     display:flex;align-items:stretch;min-height:90px;
-    background:rgba(2,6,23,.95);backdrop-filter:blur(14px);
-    border:1px solid rgba(255,255,255,.10);border-radius:18px;overflow:hidden;
-    box-shadow:0 40px 80px rgba(0,0,0,.5);
+    background:var(--bd-bg);backdrop-filter:blur(14px);
+    border:1px solid var(--bd-line);border-radius:18px;overflow:hidden;
+    box-shadow:var(--bd-shadow);
   }
   .side{display:flex;align-items:center;gap:16px;padding:12px 24px;min-width:190px}
   .side.away{text-align:right}
   .bar{width:10px;height:40px;border-radius:99px;flex:none}
   .sets{display:flex;flex-direction:column;gap:4px}
-  .dot{width:10px;height:10px;border-radius:99px;border:1px solid rgba(255,255,255,.3);background:rgba(0,0,0,.6);transition:all .3s}
-  .dot.on{background:#FACC15;border-color:#FDE68A;box-shadow:0 0 8px rgba(250,204,21,.6)}
-  .tname{font-size:26px;font-weight:900;color:#fff;text-transform:uppercase;line-height:1;letter-spacing:-.02em;
-         text-shadow:0 2px 6px rgba(0,0,0,.5);white-space:nowrap;max-width:230px;overflow:hidden;text-overflow:ellipsis}
-  .score{font-size:42px;font-weight:900;color:#fff;line-height:1}
+  .dot{width:10px;height:10px;border-radius:99px;border:1px solid var(--bd-dot-line);
+       background:var(--bd-dot-off);transition:all .3s}
+  .dot.on{background:var(--bd-accent);border-color:var(--bd-accent-line);
+          box-shadow:0 0 8px color-mix(in srgb, var(--bd-accent) 60%, transparent)}
+  .tname{font-size:26px;font-weight:900;color:var(--bd-text);text-transform:uppercase;line-height:1;
+         letter-spacing:-.02em;text-shadow:var(--bd-name-shadow);white-space:nowrap;max-width:230px;
+         overflow:hidden;text-overflow:ellipsis}
+  .score{font-size:42px;font-weight:900;color:var(--bd-text);line-height:1}
   .side.home .score{margin-left:auto}
   .side.away .score{margin-right:auto}
-  .serve{width:13px;height:13px;border-radius:99px;background:#FACC15;border:2px solid #fff;
-         box-shadow:0 0 12px rgba(250,204,21,.6);flex:none;animation:pulse 1.6s infinite}
+  .serve{width:13px;height:13px;border-radius:99px;background:var(--bd-accent);
+         border:2px solid var(--bd-accent-line);flex:none;animation:pulse 1.6s infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
-  .center{background:rgba(0,0,0,.6);padding:0 30px;border-left:1px solid rgba(255,255,255,.15);
-          border-right:1px solid rgba(255,255,255,.15);display:flex;flex-direction:column;
+  .center{background:var(--bd-center);padding:0 30px;border-left:1px solid var(--bd-center-line);
+          border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;
           justify-content:center;align-items:center;min-width:150px;gap:2px}
-  .stage{font-size:11px;font-weight:900;color:#fff;text-transform:uppercase;letter-spacing:.18em}
-  .period{font-size:17px;font-weight:900;color:#3B82F6;letter-spacing:.2em;line-height:1}
-  .timer{font-size:24px;font-weight:800;color:#fff;font-family:ui-monospace,Menlo,monospace;line-height:1.1}
+  .stage{font-size:11px;font-weight:900;color:var(--bd-stage);text-transform:uppercase;letter-spacing:.18em}
+  .period{font-size:17px;font-weight:900;color:var(--bd-period);letter-spacing:.2em;line-height:1}
+  .timer{font-size:24px;font-weight:800;color:var(--bd-text);font-family:ui-monospace,Menlo,monospace;line-height:1.1}
   .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
          letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
   /* 경기 종료 요약 */
-  .summary{background:rgba(0,20,41,.95);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
-           border:1px solid rgba(255,255,255,.1);box-shadow:0 40px 100px rgba(0,0,0,.8);min-width:360px}
-  .summary .hd{font-size:10px;font-weight:900;color:rgba(255,255,255,.25);text-transform:uppercase;
+  .summary{background:var(--sum-bg);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
+           border:1px solid var(--bd-line);box-shadow:var(--bd-shadow);min-width:360px}
+  .summary .hd{font-size:10px;font-weight:900;color:var(--sum-hd);text-transform:uppercase;
                letter-spacing:.2em;font-style:italic}
   .srow{display:grid;gap:10px;align-items:center;height:36px}
-  .sname{font-size:14px;font-weight:900;color:#fff;font-style:italic;text-transform:uppercase;
+  .sname{font-size:14px;font-weight:900;color:var(--bd-text);font-style:italic;text-transform:uppercase;
          white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .sv{font-size:26px;font-weight:900;text-align:center;line-height:1;color:rgba(255,255,255,.2)}
-  .sv.win{color:#FACC15}
-  .sep{height:1px;background:rgba(255,255,255,.06);margin:4px 0}
-  .sethd{font-size:10px;font-weight:700;color:rgba(96,165,250,.5);text-align:center}
+  .sv{font-size:26px;font-weight:900;text-align:center;line-height:1;color:var(--sum-dim)}
+  .sv.win{color:var(--bd-accent)}
+  .sep{height:1px;background:var(--sum-sep);margin:4px 0}
+  .sethd{font-size:10px;font-weight:700;color:var(--sum-sethd);text-align:center}
 
-  /* ── 조작 화면 ─────────────────────────────────────── */
-  body.control{background:#0B1220;color:#E5E7EB;padding:14px;padding-bottom:40px}
+  /* ── 조작 화면 ── */
+  body.control{background:var(--ui-bg);color:var(--ui-fg);padding:14px;padding-bottom:40px}
   .wrap{max-width:900px;margin:0 auto}
   h1{font-size:17px;margin:0 0 4px;font-weight:900}
-  .sub{color:#94A3B8;font-size:13px;margin-bottom:14px;line-height:1.6}
-  .card{background:#111A2E;border:1px solid #1F2A44;border-radius:16px;padding:14px;margin-bottom:12px}
-  .card h2{font-size:13px;margin:0 0 10px;color:#93C5FD;font-weight:800;letter-spacing:.03em}
+  .sub{color:var(--ui-sub);font-size:13px;margin-bottom:14px;line-height:1.6}
+  .card{background:var(--ui-card);border:1px solid var(--ui-line);border-radius:16px;padding:14px;margin-bottom:12px}
+  .card h2{font-size:13px;margin:0 0 10px;color:var(--ui-h2);font-weight:800;letter-spacing:.03em}
   .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .team{background:#0E1729;border:1px solid #1F2A44;border-radius:14px;padding:12px}
+  .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px}
   .team .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
-  .team input[type=text]{flex:1;min-width:0;background:#0B1220;border:1px solid #26334D;color:#fff;
-    border-radius:10px;padding:10px;font-size:15px;font-weight:800}
-  .team input[type=color]{width:38px;height:38px;border:1px solid #26334D;border-radius:10px;background:#0B1220;padding:2px;flex:none}
+  .team input[type=text]{flex:1;min-width:0;background:var(--ui-input);border:1px solid var(--ui-input-line);
+    color:var(--ui-fg);border-radius:10px;padding:10px;font-size:15px;font-weight:800}
+  .team input[type=color]{width:38px;height:38px;border:1px solid var(--ui-input-line);border-radius:10px;
+    background:var(--ui-input);padding:2px;flex:none}
   .big{font-size:54px;font-weight:900;text-align:center;line-height:1;margin:6px 0 10px}
   .row{display:flex;gap:8px}
-  button{font-family:inherit;font-weight:800;border-radius:12px;border:1px solid #26334D;background:#18233B;
-         color:#E5E7EB;font-size:15px;padding:14px;cursor:pointer;flex:1;min-height:52px}
+  button{font-family:inherit;font-weight:800;border-radius:12px;border:1px solid var(--ui-input-line);
+         background:var(--ui-btn);color:var(--ui-fg);font-size:15px;padding:14px;cursor:pointer;flex:1;min-height:52px}
   button:active{opacity:.7}
   button.plus{background:#1D4ED8;border-color:#3B82F6;color:#fff;font-size:22px}
-  button.minus{background:#1F2937;font-size:22px;max-width:74px}
+  button.minus{background:var(--ui-btn-sub);font-size:22px;max-width:74px}
   button.on{background:#166534;border-color:#22C55E;color:#DCFCE7}
-  button.warn{background:#7F1D1D;border-color:#991B1B;color:#FEE2E2}
+  button.warn{background:#B91C1C;border-color:#991B1B;color:#fff}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
   .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
-  label.f{display:block;font-size:12px;color:#94A3B8;margin:10px 0 5px;font-weight:700}
-  input.t,select.t{width:100%;background:#0B1220;border:1px solid #26334D;color:#fff;border-radius:10px;
-    padding:11px;font-size:15px;font-family:inherit}
-  .hint{color:#94A3B8;font-size:12.5px;line-height:1.7;margin-top:10px}
-  .hint b{color:#E5E7EB}
-  .urlbox{background:#0B1220;border:1px solid #26334D;border-radius:10px;padding:10px;font-size:12px;
-    word-break:break-all;color:#93C5FD;margin-top:6px;font-family:ui-monospace,Menlo,monospace}
-  .prev{background:#0B1220;border:1px solid #1F2A44;border-radius:14px;padding:16px;overflow-x:auto}
-  .prevnote{font-size:11px;color:#64748B;margin-bottom:8px}
+  label.f{display:block;font-size:12px;color:var(--ui-sub);margin:10px 0 5px;font-weight:700}
+  input.t,select.t{width:100%;background:var(--ui-input);border:1px solid var(--ui-input-line);
+    color:var(--ui-fg);border-radius:10px;padding:11px;font-size:15px;font-family:inherit}
+  .hint{color:var(--ui-sub);font-size:12.5px;line-height:1.7;margin-top:10px}
+  .hint b{color:var(--ui-fg)}
+  .urlbox{background:var(--ui-input);border:1px solid var(--ui-input-line);border-radius:10px;padding:10px;
+    font-size:12px;word-break:break-all;color:var(--ui-url);margin-top:6px;font-family:ui-monospace,Menlo,monospace}
+  .prev{background:var(--ui-input);border:1px solid var(--ui-line);border-radius:14px;padding:16px;overflow-x:auto}
+  .prev.dark{background:#0B1220}
+  .prev.lightbg{background:#E2E8F0}
+  .prevnote{font-size:11px;color:var(--ui-sub);margin-bottom:8px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1E293B;border:1px solid #334155;
     color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
     transition:opacity .2s;z-index:99;white-space:pre-line;text-align:center}
@@ -117,6 +161,8 @@ var VIEW  = (Q.get("view")||"control").toLowerCase();
 var POS   = (Q.get("pos")||"BL").toUpperCase();
 var SCALE = parseFloat(Q.get("scale")||"1") || 1;
 var ROOM  = Q.get("room")||"";
+if(!ROOM){ try{ ROOM = localStorage.getItem("sb_room")||""; }catch(e){} }
+var THEME = (Q.get("theme")||"dark").toLowerCase()==="light" ? "light" : "dark";
 var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
 
 var DEF = {
@@ -142,24 +188,72 @@ function load(){
 }
 var S = load();
 
-/* ── 같은 브라우저 안에서 창끼리 실시간 반영 ──
-   조작 창에서 바꾸면 오버레이 창이 즉시 따라온다.
-   (OBS 브라우저 소스는 별도 브라우저라 여기까진 안 온다 → ?room= 서버 연동은 다음 단계) */
+/* ── 실시간 반영 ────────────────────────────────────────────
+   ① 같은 브라우저의 창끼리  : BroadcastChannel
+   ② 다른 기기·OBS 브라우저 소스 : 방 코드(?room=)로 서버를 거친다
+      Firebase 실시간 DB 의 REST 스트리밍(EventSource)을 쓴다 —
+      SDK·로그인 없이 순수 브라우저 기능만으로 돌아서 OBS 안에서도 동작한다. */
+var FB = "https://matchmaker-28187-default-rtdb.asia-southeast1.firebasedatabase.app/scoreboard/";
 var CH = null;
 try{ CH = new BroadcastChannel("sb_"+(ROOM||"local")); }catch(e){}
+
+var lastSent = "";     // 내가 올린 내용 — 되돌아오면 무시(무한 반복 차단)
+var putTimer = null;
+function pushRemote(){
+  if(!ROOM) return;
+  clearTimeout(putTimer);
+  putTimer = setTimeout(function(){
+    var body = JSON.stringify(S);
+    lastSent = body;
+    fetch(FB + encodeURIComponent(ROOM) + ".json", {method:"PUT", body:body})
+      .then(function(){ setNet(true); })
+      .catch(function(){ setNet(false); });
+  }, 250);
+}
 function save(push){
   try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){}
-  if(push !== false && CH) try{ CH.postMessage(S); }catch(e){}
-}
-if(CH) CH.onmessage = function(e){
-  if(!e.data) return;
-  S = e.data; render();
-};
-window.addEventListener("storage", function(e){          // BroadcastChannel 없는 기기 대비
-  if(e.key === KEY && e.newValue){
-    try{ S = JSON.parse(e.newValue); render(); }catch(_){}
+  if(push !== false){
+    if(CH) try{ CH.postMessage(S); }catch(e){}
+    pushRemote();
   }
+}
+if(CH) CH.onmessage = function(e){ if(e.data){ S = e.data; render(); } };
+window.addEventListener("storage", function(e){
+  if(e.key === KEY && e.newValue){ try{ S = JSON.parse(e.newValue); render(); }catch(_){} }
 });
+
+var NET = null;
+function setNet(ok){
+  if(NET === ok) return;
+  NET = ok;
+  var el = document.getElementById("net");
+  if(el){ el.textContent = ok ? "🟢 연결됨" : "🔴 연결 끊김"; el.style.color = ok ? "#22C55E" : "#F87171"; }
+}
+var es = null;
+function subscribe(){
+  if(!ROOM || !window.EventSource) return;
+  try{ if(es) es.close(); }catch(e){}
+  es = new EventSource(FB + encodeURIComponent(ROOM) + ".json");
+  var apply = function(ev){
+    try{
+      var m = JSON.parse(ev.data);
+      if(!m || m.data == null) return;
+      var v = (m.path === "/") ? m.data : null;
+      if(!v) return;                                   // 부분 갱신은 쓰지 않는다(항상 통째로 올림)
+      if(JSON.stringify(v) === lastSent) return;       // 내가 올린 것
+      var d = JSON.parse(JSON.stringify(DEF));
+      for(var k in v) d[k] = v[k];
+      d.home = Object.assign({}, DEF.home, v.home||{});
+      d.away = Object.assign({}, DEF.away, v.away||{});
+      S = d; render(); setNet(true);
+    }catch(e){}
+  };
+  es.addEventListener("put", apply);
+  es.addEventListener("patch", apply);
+  es.onopen  = function(){ setNet(true); };
+  es.onerror = function(){ setNet(false); };           // EventSource 는 알아서 다시 붙는다
+}
+subscribe();
 
 /* ── 타이머 ── */
 function timerMs(){ return S.timerAcc + (S.timerRunning ? (Date.now()-S.timerBase) : 0); }
@@ -271,7 +365,7 @@ function teamHTML(k){
 }
 function renderControl(){
   var base = location.origin + location.pathname;
-  var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE;
+  var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + (ROOM?"&room="+encodeURIComponent(ROOM):"");
   document.getElementById("app").innerHTML =
   '<div class="wrap">'+
     '<h1>🏐 라이브 스코어보드 — 조작</h1>'+
@@ -287,7 +381,7 @@ function renderControl(){
 
     '<div class="card"><h2>미리보기</h2>'+
       '<div class="prevnote">실제 송출 화면과 같습니다 (배경은 투명하게 나갑니다)</div>'+
-      '<div class="prev">'+boardHTML()+'</div>'+
+      '<div class="prev '+(THEME==="light"?"lightbg":"dark")+'">'+boardHTML()+'</div>'+
     '</div>'+
 
     '<div class="card"><h2>경기 정보</h2>'+
@@ -314,11 +408,29 @@ function renderControl(){
       '</div>'+
     '</div>'+
 
+    '<div class="card"><h2>기기 연결 <span id="net" style="font-size:12px;font-weight:800;margin-left:6px">'+(ROOM?"연결 중…":"꺼짐")+'</span></h2>'+
+      '<div class="hint" style="margin-top:0">폰으로 누르고 <b>OBS 화면이 바뀌게</b> 하려면 방 코드가 있어야 합니다.<br>'+
+      '조작하는 기기와 오버레이가 <b>같은 코드</b>를 쓰면 이어집니다.</div>'+
+      '<div class="grid2" style="margin-top:10px">'+
+        '<input class="t" id="room" value="'+esc(ROOM)+'" placeholder="예: yj1" maxlength="16">'+
+        '<button id="mkRoom">🎲 코드 만들기</button>'+
+      '</div>'+
+      '<div class="grid2" style="margin-top:8px">'+
+        '<button id="applyRoom">연결</button>'+
+        '<button id="offRoom">연결 끄기</button>'+
+      '</div>'+
+    '</div>'+
+
     '<div class="card"><h2>송출에 넣을 주소</h2>'+
       '<div class="urlbox" id="ovlUrl">'+esc(ovl)+'</div>'+
       '<div class="grid2" style="margin-top:8px">'+
         '<button id="copyUrl">📋 주소 복사</button>'+
         '<button id="openOvl">🖥 오버레이 창 열기</button>'+
+      '</div>'+
+      '<label class="f">화면 색</label>'+
+      '<div class="grid2">'+
+        '<button id="thDark" class="'+(THEME==="dark"?"on":"")+'">🌙 어두운 점수판</button>'+
+        '<button id="thLight" class="'+(THEME==="light"?"on":"")+'">☀️ 밝은 점수판</button>'+
       '</div>'+
       '<label class="f">위치</label>'+
       '<select class="t" id="pos">'+
@@ -332,8 +444,7 @@ function renderControl(){
       '<div class="hint">'+
         '<b>OBS</b> : 소스 추가 → 브라우저 → 위 주소 붙여넣기 → 너비 1920 높이 1080<br>'+
         '<b>카메라파이</b> : 오버레이 → 웹 → 위 주소 붙여넣기<br>'+
-        '⚠️ <b>지금은 같은 브라우저의 창끼리만</b> 실시간으로 이어집니다. '+
-        'OBS 브라우저 소스나 폰에서 따로 열면 아직 안 따라옵니다 — 그건 다음 단계에서 붙입니다.'+
+        '⚠️ OBS·폰에서 쓰시려면 <b>위에서 방 코드를 연결</b>하세요. 코드가 없으면 같은 브라우저 창끼리만 이어집니다.'+
       '</div>'+
     '</div>'+
   '</div>';
@@ -414,6 +525,26 @@ function bindControl(){
     S = JSON.parse(JSON.stringify(DEF)); save(); render(); toast("초기화했습니다");
   };
 
+  $("mkRoom").onclick = function(){
+    $("room").value = Math.random().toString(36).slice(2,6);
+  };
+  $("applyRoom").onclick = function(){
+    var v = ($("room").value||"").trim().replace(/[^A-Za-z0-9_-]/g,"");
+    if(!v){ toast("코드를 넣어 주세요", 2000); return; }
+    ROOM = v; KEY = "sb_state_v1_" + ROOM;
+    try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
+    subscribe(); pushRemote(); refreshUrl(); render();
+    toast("「"+ROOM+"」 방에 연결했습니다\n오버레이 주소도 바뀌었습니다", 3200);
+  };
+  $("offRoom").onclick = function(){
+    ROOM = ""; KEY = "sb_state_v1";
+    try{ localStorage.removeItem("sb_room"); }catch(e){}
+    try{ if(es) es.close(); }catch(e){}
+    NET = null; refreshUrl(); render();
+    toast("연결을 껐습니다", 2000);
+  };
+  $("thDark").onclick  = function(){ THEME="dark";  saveTheme(); refreshUrl(); render(); };
+  $("thLight").onclick = function(){ THEME="light"; saveTheme(); refreshUrl(); render(); };
   $("pos").onchange  = function(){ POS = $("pos").value; refreshUrl(); render(); };
   $("scale").oninput = function(){ SCALE = parseFloat($("scale").value)||1; refreshUrl(); render(); };
   $("copyUrl").onclick = function(){
@@ -428,15 +559,20 @@ function bindControl(){
 }
 function refreshUrl(){
   var base = location.origin + location.pathname;
-  var u = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE;
+  var r = ROOM ? "&room="+encodeURIComponent(ROOM) : "";
+  var u = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + r;
   var el = document.getElementById("ovlUrl"); if(el) el.textContent = u;
-  history.replaceState(null, "", base + "?view=control&pos=" + POS + "&scale=" + SCALE);
+  history.replaceState(null, "", base + "?view=control&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + r);
 }
 /* 이름·단계만 바뀔 때는 입력 포커스를 잃지 않게 미리보기만 다시 그린다 */
 function renderOverlayPreviewOnly(){
   var p = document.querySelector(".prev");
   if(p) p.innerHTML = boardHTML();
 }
+
+function saveTheme(){ try{ localStorage.setItem("sb_theme", THEME); }catch(e){} }
+/* 조작 화면에서 고른 색을 다음에도 기억한다 (주소로 직접 지정한 건 그게 우선) */
+if(!Q.get("theme")){ try{ var t=localStorage.getItem("sb_theme"); if(t==="light"||t==="dark") THEME=t; }catch(e){} }
 
 var toastTimer = null;
 function toast(msg, ms){
@@ -447,8 +583,9 @@ function toast(msg, ms){
 }
 
 function render(){
-  if(VIEW === "overlay"){ document.body.className = ""; renderOverlay(); }
-  else { document.body.className = "control"; renderControl(); }
+  var th = (THEME==="light" ? " light" : "");
+  if(VIEW === "overlay"){ document.body.className = th.trim(); renderOverlay(); }
+  else { document.body.className = "control" + th; renderControl(); }
 }
 render();
 

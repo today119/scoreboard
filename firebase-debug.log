@@ -1,0 +1,30 @@
+[debug] [2026-09-13T22:44:30.868Z] ----------------------------------------------------------------------
+[debug] [2026-09-13T22:44:30.870Z] Command:       /usr/local/bin/node /Users/shihyoungkim/.npm/_npx/ba4f1959e38407b5/node_modules/.bin/firebase projects:create scoreboard-yj-2026 --display-name Scoreboard YJ
+[debug] [2026-09-13T22:44:30.870Z] CLI Version:   15.30.0
+[debug] [2026-09-13T22:44:30.870Z] Platform:      darwin
+[debug] [2026-09-13T22:44:30.870Z] Node Version:  v24.13.1
+[debug] [2026-09-13T22:44:30.870Z] Detected Agent: claude-code_2-1-261_agent
+[debug] [2026-09-13T22:44:30.870Z] Time:          Mon Sep 14 2026 07:44:30 GMT+0900 (Korean Standard Time)
+[debug] [2026-09-13T22:44:30.870Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2026-09-13T22:44:30.873Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2026-09-13T22:44:30.873Z] > authorizing via signed-in user (teacher51@yeongjong.icehs.kr)
+[debug] [2026-09-13T22:44:30.884Z] Checked if tokens are valid: true, expires at: 1789341315864
+[debug] [2026-09-13T22:44:30.884Z] Checked if tokens are valid: true, expires at: 1789341315864
+[debug] [2026-09-13T22:44:30.885Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects [none]
+[debug] [2026-09-13T22:44:30.885Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"projectId":"scoreboard-yj-2026","name":"Scoreboard YJ"}
+[debug] [2026-09-13T22:44:31.645Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects 200
+[debug] [2026-09-13T22:44:31.645Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects {"name":"operations/create_project.global.4619373348566957557"}
+[debug] [2026-09-13T22:44:31.646Z] Checked if tokens are valid: true, expires at: 1789341315864
+[debug] [2026-09-13T22:44:31.646Z] Checked if tokens are valid: true, expires at: 1789341315864
+[debug] [2026-09-13T22:44:31.647Z] >>> [apiv2][query] GET https://cloudresourcemanager.googleapis.com/v1/operations/create_project.global.4619373348566957557 [none]
+[debug] [2026-09-13T22:44:32.487Z] <<< [apiv2][status] GET https://cloudresourcemanager.googleapis.com/v1/operations/create_project.global.4619373348566957557 200
+[debug] [2026-09-13T22:44:32.487Z] <<< [apiv2][body] GET https://cloudresourcemanager.googleapis.com/v1/operations/create_project.global.4619373348566957557 {"name":"operations/create_project.global.4619373348566957557","metadata":{"@type":"type.googleapis.com/google.cloudresourcemanager.v1.ProjectCreationStatus","ready":true},"done":true,"error":{"code":8,"message":"The project cannot be created because you have exceeded your allotted project quota.","details":[{"@type":"type.googleapis.com/google.rpc.QuotaFailure","violations":[{"description":"The project cannot be created because you have exceeded your allotted project quota."}]}]}}
+[debug] [2026-09-13T22:44:32.489Z] FirebaseError: The project cannot be created because you have exceeded your allotted project quota.
+    at OperationPoller.poll (/Users/shihyoungkim/.npm/_npx/ba4f1959e38407b5/node_modules/firebase-tools/lib/operation-poller.js:25:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async createCloudProject (/Users/shihyoungkim/.npm/_npx/ba4f1959e38407b5/node_modules/firebase-tools/lib/management/projects.js:237:29)
+    at async createFirebaseProjectAndLog (/Users/shihyoungkim/.npm/_npx/ba4f1959e38407b5/node_modules/firebase-tools/lib/management/projects.js:102:9)
+    at async /Users/shihyoungkim/.npm/_npx/ba4f1959e38407b5/node_modules/firebase-tools/lib/command.js:280:28
+[error] 
+[error] Error: Failed to create project. See firebase-debug.log for more info.
