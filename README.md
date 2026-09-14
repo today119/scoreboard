@@ -11,6 +11,7 @@ HTML 한 파일이라 설치·빌드가 없다.
 - `pos=TL|TC|TR|BL|BC|BR` 오버레이 위치
 - `scale=0.5~2` 크기
 - `theme=dark|light` 점수판 색
+- `layout=bar|corner|wide` 레이아웃 고정 (없으면 조작 화면에서 고른 것이 실시간으로 따라감)
 - `room=코드` 다른 기기(폰)·OBS 와 실시간 연결
 
 종목 (조작 화면 「경기 정보 → 종목」)

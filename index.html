@@ -122,6 +122,60 @@
   .tpt{width:96px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--tn-pt);
        color:var(--tn-pt-fg);font-size:32px;font-weight:900}
 
+  .tboard.wide{width:100%}
+  .tboard.wide .thead{font-size:24px;padding:8px 28px}
+  .tboard.wide .thead .ttime{font-size:24px}
+  .tboard.wide .trow{height:84px}
+  .tboard.wide .trow .cbar{width:16px}
+  .tboard.wide .trow .tname{font-size:32px;max-width:none}
+  .tboard.wide .thist span{font-size:28px;width:34px}
+  .tboard.wide .tgm{width:120px;font-size:38px}
+  .tboard.wide .tpt{width:140px;font-size:46px}
+
+  .msep{color:var(--bd-text);opacity:.3;font-size:10px;margin:0 6px}
+
+  /* 코너 미니 — 구석용 2줄 */
+  .cboard{display:inline-flex;flex-direction:column;min-width:290px;background:var(--bd-bg);backdrop-filter:blur(14px);
+          border:1px solid var(--bd-line);border-radius:14px;overflow:hidden;box-shadow:var(--bd-shadow)}
+  .chead{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:6px 12px 5px;background:var(--bd-center)}
+  .chead .period{font-size:12px;letter-spacing:.14em}
+  .chead .stage{font-size:10px}
+  .chead .timer{font-size:14px;line-height:1}
+  .crow{display:flex;align-items:stretch;height:46px;border-top:1px solid var(--bd-line)}
+  .crow .cbar{width:7px;flex:none}
+  .crow .cn{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;min-width:0}
+  .crow .tname{font-size:18px;max-width:170px}
+  .crow .serve{width:10px;height:10px}
+  .cx{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .cx .sets{flex-direction:row;gap:3px}
+  .cx .dot{width:8px;height:8px}
+  .cx .fl{font-size:10px;letter-spacing:.08em}
+  .cscore{min-width:58px;padding:0 10px;flex:none;display:flex;align-items:center;justify-content:center;
+          background:var(--tn-pt);color:var(--tn-pt-fg);font-size:27px;font-weight:900}
+
+  /* 와이드 — 화면 폭 전체 띠 */
+  .wboard{display:flex;align-items:stretch;height:112px;width:100%;background:var(--bd-bg);backdrop-filter:blur(14px);
+          border:1px solid var(--bd-line);border-radius:20px;overflow:hidden;box-shadow:var(--bd-shadow)}
+  .wside{flex:1;display:flex;align-items:center;gap:22px;padding-right:36px;min-width:0}
+  .wside.away{flex-direction:row-reverse;padding-right:0;padding-left:36px}
+  .wbar{width:16px;align-self:stretch;flex:none}
+  .wcol{flex:1;display:flex;flex-direction:column;gap:10px;min-width:0}
+  .wside.away .wcol{align-items:flex-end}
+  .wside .tname{font-size:40px;max-width:none}
+  .wsub{display:flex;align-items:center;gap:12px}
+  .wside.away .wsub{flex-direction:row-reverse}
+  .wsub .sets{flex-direction:row;gap:6px}
+  .wsub .dot{width:13px;height:13px}
+  .wsub .fl{font-size:14px}
+  .wside .serve{width:18px;height:18px}
+  .wscore{font-size:76px;font-weight:900;color:var(--bd-text);line-height:1}
+  .wcenter{flex:none;min-width:230px;padding:0 26px;background:var(--bd-center);border-left:1px solid var(--bd-center-line);
+           border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
+  .wcenter .wmeta{display:flex;align-items:center}
+  .wcenter .period{font-size:26px}
+  .wcenter .stage{font-size:15px}
+  .wcenter .timer{font-size:38px}
+
   /* 경기 종료 요약 */
   .summary{background:var(--sum-bg);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
            border:1px solid var(--bd-line);box-shadow:var(--bd-shadow);min-width:360px}
@@ -177,6 +231,7 @@
   .urlbox{background:var(--ui-input);border:1px solid var(--ui-input-line);border-radius:10px;padding:10px;
     font-size:12px;word-break:break-all;color:var(--ui-url);margin-top:6px;font-family:ui-monospace,Menlo,monospace}
   .prev{background:var(--ui-input);border:1px solid var(--ui-line);border-radius:14px;padding:16px;overflow-x:auto}
+  .prev .wboard,.prev .tboard.wide{min-width:1100px}   /* 미리보기에선 와이드가 찌그러지지 않게 옆으로 스크롤 */
   .prev.dark{background:#0B1220}
   .prev.lightbg{background:#E2E8F0}
   .prevnote{font-size:11px;color:var(--ui-sub);margin-bottom:8px}
@@ -262,6 +317,7 @@ var DEF = {
   timerDir:"up", timerLen:10,                         // 내려가는 시간은 timerLen 분에서 뺀다
   tournament:"", channel:"",
   over:false, bestOf:3,
+  layout:"bar",
   firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
   /* 테니스: pts 는 이번 게임에서 딴 포인트 수(숫자). 0·15·30·40·AD 는 화면에서만 바꿔 그린다. */
   tn:{games:6, noAd:false, tb:false, tbServer:"home"},
@@ -400,15 +456,10 @@ function dots(n){
 }
 function sideHTML(k){
   var t = S[k], p = PR();
-  var foul = "";
-  if(p.fouls){
-    var bonus = t.fouls >= p.fouls;
-    foul = '<div class="fl'+(bonus?" bonus":"")+'">FOUL '+t.fouls+(bonus?" · BONUS":"")+'</div>';
-  }
   var parts = [
     '<div class="bar" style="background:'+esc(t.color)+'"></div>',
     p.sets ? dots(t.sets) : "",
-    '<div class="nm"><div class="tname">'+esc(t.name)+'</div>'+foul+'</div>',
+    '<div class="nm"><div class="tname">'+esc(t.name)+'</div>'+foulHTML(t)+'</div>',
     (p.serve && t.serve) ? '<div class="serve"></div>' : "",
     '<div class="score tab">'+t.score+'</div>'
   ];
@@ -437,7 +488,10 @@ function boardHTML(){
       '<div class="srow" style="grid-template-columns:'+cols+'"><div class="sname">'+esc(S.away.name)+'</div>'+ar+'</div>'+
     '</div>';
   }
-  if(S.sport === "TENNIS") return tennisHTML();
+  var L = layout();
+  if(S.sport === "TENNIS") return tennisHTML(L === "wide");  // 테니스는 원래 2줄 중계형 — 와이드만 넓힌다
+  if(L === "corner") return cornerHTML();
+  if(L === "wide")   return wideHTML();
   return '<div class="board">'+
     sideHTML("home")+
     '<div class="center">'+
@@ -458,7 +512,71 @@ function ptLabel(k){
   if(a>=3 && b>=3) return (!S.tn.noAd && a>b) ? "AD" : "40";
   return ["0","15","30","40"][Math.min(a,3)];
 }
-function tennisHTML(){
+/* ── 레이아웃 ──
+   bar     가로 바 (기본)          corner  구석용 작은 2줄
+   wide    화면 폭 전체 띠
+   조작 화면에서 고르면 S.layout 으로 동기화된다 → OBS 주소를 다시 붙일 필요 없음. 주소의 ?layout= 이 있으면 그게 우선. */
+var LAYOUTS = {bar:"가로 바", corner:"코너 미니", wide:"와이드"};
+function layout(){
+  var u = (Q.get("layout")||"").toLowerCase();
+  if(VIEW === "overlay" && LAYOUTS[u]) return u;
+  return LAYOUTS[S.layout] ? S.layout : "bar";
+}
+function metaHTML(){                                 // 단계 · 기간
+  return (S.stage ? '<span class="stage">'+esc(S.stage)+'</span><span class="msep">/</span>' : "")+
+         '<span class="period">'+esc(S.period)+'</span>';
+}
+function foulHTML(t){
+  var p = PR();
+  if(!p.fouls) return "";
+  var bonus = t.fouls >= p.fouls;
+  return '<div class="fl'+(bonus?" bonus":"")+'">FOUL '+t.fouls+(bonus?" · BONUS":"")+'</div>';
+}
+function cornerHTML(){
+  var p = PR();
+  function row(k){
+    var t = S[k];
+    return '<div class="crow">'+
+      '<div class="cbar" style="background:'+esc(t.color)+'"></div>'+
+      '<div class="cn">'+
+        '<div class="tname">'+esc(t.name)+'</div>'+
+        ((p.serve && t.serve) ? '<div class="serve"></div>' : "")+
+        '<div class="cx">'+(p.sets ? dots(t.sets) : "")+foulHTML(t)+'</div>'+
+      '</div>'+
+      '<div class="cscore tab">'+t.score+'</div>'+
+    '</div>';
+  }
+  return '<div class="cboard">'+
+    '<div class="chead"><span>'+metaHTML()+'</span>'+
+      (S.showTimer ? '<span class="timer tab">'+fmt(timerShown())+'</span>' : "")+'</div>'+
+    row("home")+row("away")+
+  '</div>';
+}
+function wideHTML(){
+  var p = PR();
+  function side(k){
+    var t = S[k];
+    return '<div class="wside '+k+'">'+
+      '<div class="wbar" style="background:'+esc(t.color)+'"></div>'+
+      '<div class="wcol">'+
+        '<div class="tname">'+esc(t.name)+'</div>'+
+        ((p.sets || p.fouls) ? '<div class="wsub">'+(p.sets ? dots(t.sets) : "")+foulHTML(t)+'</div>' : "")+
+      '</div>'+
+      ((p.serve && t.serve) ? '<div class="serve"></div>' : "")+
+      '<div class="wscore tab">'+t.score+'</div>'+
+    '</div>';
+  }
+  return '<div class="wboard">'+
+    side("home")+
+    '<div class="wcenter">'+
+      '<div class="wmeta">'+metaHTML()+'</div>'+
+      (S.showTimer ? '<div class="timer tab">'+fmt(timerShown())+'</div>' : "")+
+    '</div>'+
+    side("away")+
+  '</div>';
+}
+
+function tennisHTML(wide){
   var n = Math.max(S.home.hist.length, S.away.hist.length);
   function row(k){
     var t = S[k], o = S[other(k)], h = "";
@@ -474,7 +592,7 @@ function tennisHTML(){
       '<div class="tpt tab">'+ptLabel(k)+'</div>'+
     '</div>';
   }
-  return '<div class="tboard">'+
+  return '<div class="tboard'+(wide?" wide":"")+'">'+
     '<div class="thead"><span>'+
       (S.stage?'<span class="ts">'+esc(S.stage)+'</span><span class="tsep">-</span>':"")+
       '<span>'+esc(S.period)+'</span>'+
@@ -602,7 +720,17 @@ function brandHTML(){
 function renderOverlay(){
   document.getElementById("app").innerHTML =
     '<div id="sbStage">'+brandHTML()+'<div class="anchor" id="bd">'+boardHTML()+'</div></div>';
-  var bd = document.getElementById("bd"); posStyle(bd);
+  var bd = document.getElementById("bd");
+  if(layout() === "wide" && !S.over){
+    /* 와이드는 좌우 여백만 두고 폭을 꽉 채운다 — 위/아래만 pos 를 따른다.
+       scale 로 키우면 넘치므로 폭을 미리 scale 로 나눠 둔다. 대회명·채널명과 겹치지 않게 위쪽이면 조금 내린다 */
+    var v = POS[0]==="T" ? "top" : "bottom";
+    bd.style[v] = (v==="top" && (S.tournament||S.channel)) ? "110px" : "40px";
+    bd.style.left = "40px";
+    bd.style.width = "calc((100vw - 80px) / "+SCALE+")";
+    bd.style.transformOrigin = v+" left";
+    bd.style.transform = "scale("+SCALE+")";
+  }else posStyle(bd);
   var t = document.getElementById("bTour");
   if(t){ t.style.top="40px"; t.style.right="40px"; t.style.transformOrigin="top right"; t.style.transform="scale("+SCALE+")"; }
   var c = document.getElementById("bCh");
@@ -734,6 +862,13 @@ function renderControl(){
     '<div class="card"><h2>미리보기</h2>'+
       '<div class="prevnote">실제 송출 화면과 같습니다 (배경은 투명하게 나갑니다)</div>'+
       '<div class="prev '+(THEME==="light"?"lightbg":"dark")+'">'+boardHTML()+'</div>'+
+      '<div class="prevnote" style="margin-top:10px">레이아웃 — 바꾸면 <b>방송 화면도 바로</b> 바뀝니다</div>'+
+      '<div class="grid3">'+
+        Object.keys(LAYOUTS).map(function(k){
+          var ic = {bar:"▭ ", corner:"◰ ", wide:"▬ "}[k];
+          return '<button data-layout="'+k+'" class="'+(layout()===k?"on":"")+'">'+ic+LAYOUTS[k]+'</button>';
+        }).join("")+
+      '</div>'+
     '</div>'+
 
     '<div class="card"><h2>경기 정보</h2>'+
@@ -984,6 +1119,9 @@ function bindControl(){
     NET = null; refreshUrl(); render();
     toast("연결을 껐습니다", 2000);
   };
+  document.querySelectorAll("[data-layout]").forEach(function(b){
+    b.onclick = function(){ S.layout = b.dataset.layout; save(); render(); };
+  });
   $("thDark").onclick  = function(){ THEME="dark";  saveTheme(); refreshUrl(); render(); };
   $("thLight").onclick = function(){ THEME="light"; saveTheme(); refreshUrl(); render(); };
   $("pos").onchange  = function(){ POS = $("pos").value; refreshUrl(); render(); };
