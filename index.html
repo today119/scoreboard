@@ -21,6 +21,11 @@
     --sum-bg:rgba(0,20,41,.95);    --sum-dim:rgba(255,255,255,.2);
     --sum-hd:rgba(255,255,255,.25);--sum-sep:rgba(255,255,255,.06);
     --sum-sethd:rgba(96,165,250,.5);
+    /* 테니스 */
+    --tn-head:#2563EB;             --tn-hist:rgba(0,0,0,.4);
+    --tn-hist-fg:#64748B;          --tn-hist-win:#CBD5E1;
+    --tn-gm:rgba(14,116,144,.85);  --tn-gm-fg:#fff;
+    --tn-pt:#fff;                  --tn-pt-fg:#020617;
     /* 조작 화면 */
     --ui-bg:#0B1220; --ui-fg:#E5E7EB; --ui-sub:#94A3B8;
     --ui-card:#111A2E; --ui-card2:#0E1729; --ui-line:#1F2A44;
@@ -38,6 +43,10 @@
     --sum-bg:rgba(255,255,255,.96); --sum-dim:rgba(15,23,42,.22);
     --sum-hd:rgba(15,23,42,.35);    --sum-sep:rgba(15,23,42,.08);
     --sum-sethd:rgba(29,78,216,.55);
+    --tn-head:#1D4ED8;              --tn-hist:rgba(15,23,42,.05);
+    --tn-hist-fg:#94A3B8;           --tn-hist-win:#0F172A;
+    --tn-gm:#0E7490;                --tn-gm-fg:#fff;
+    --tn-pt:#0F172A;                --tn-pt-fg:#fff;
     --ui-bg:#F1F5F9; --ui-fg:#0F172A; --ui-sub:#64748B;
     --ui-card:#FFFFFF; --ui-card2:#F8FAFC; --ui-line:#E2E8F0;
     --ui-input:#FFFFFF; --ui-input-line:#CBD5E1;
@@ -86,6 +95,29 @@
   .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
          letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
+  /* 테니스 — 머리띠 + 선수 2줄 (지난 세트 | 게임 | 포인트) */
+  .tboard{display:flex;flex-direction:column;min-width:440px;background:var(--bd-bg);backdrop-filter:blur(14px);
+          border:1px solid var(--bd-line);border-radius:18px;overflow:hidden;box-shadow:var(--bd-shadow)}
+  .thead{background:var(--tn-head);padding:6px 20px;display:flex;justify-content:space-between;align-items:center;
+         gap:16px;color:#fff;font-weight:900;font-style:italic;text-transform:uppercase;font-size:18px;line-height:1.2}
+  .thead .ts{letter-spacing:.12em}
+  .thead .tsep{opacity:.35;margin:0 8px}
+  .thead .ttime{font-family:ui-monospace,Menlo,monospace;font-style:normal;font-size:18px;color:#fff;line-height:1.2}
+  .tbtag{background:#F97316;color:#fff;font-size:11px;font-style:normal;letter-spacing:.12em;
+         padding:3px 8px;border-radius:6px;margin-left:10px;vertical-align:middle}
+  .trow{display:flex;align-items:stretch;height:64px;border-bottom:1px solid var(--bd-line)}
+  .trow:last-child{border-bottom:0}
+  .trow .cbar{width:10px;flex:none}
+  .trow .who{flex:1;display:flex;align-items:center;gap:14px;padding:0 22px;min-width:0}
+  .trow .tname{font-size:21px;font-style:italic}
+  .thist{display:flex;align-items:center;gap:18px;padding:0 22px;background:var(--tn-hist);border-left:1px solid var(--bd-line)}
+  .thist span{font-size:20px;font-weight:900;width:24px;text-align:center;color:var(--tn-hist-fg)}
+  .thist span.win{color:var(--tn-hist-win)}
+  .tgm{width:80px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--tn-gm);
+       color:var(--tn-gm-fg);font-size:26px;font-weight:900}
+  .tpt{width:96px;flex:none;display:flex;align-items:center;justify-content:center;background:var(--tn-pt);
+       color:var(--tn-pt-fg);font-size:32px;font-weight:900}
+
   /* 경기 종료 요약 */
   .summary{background:var(--sum-bg);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
            border:1px solid var(--bd-line);box-shadow:var(--bd-shadow);min-width:360px}
@@ -107,7 +139,22 @@
   .card{background:var(--ui-card);border:1px solid var(--ui-line);border-radius:16px;padding:14px;margin-bottom:12px}
   .card h2{font-size:13px;margin:0 0 10px;color:var(--ui-h2);font-weight:800;letter-spacing:.03em}
   .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px}
+  .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px;min-width:0}
+  .grid2>*,.grid3>*{min-width:0}
+  .gadj{margin-top:8px;align-items:center}
+  .gadj span{flex:1;font-size:12px;color:var(--ui-sub);font-weight:700;white-space:nowrap}
+  .gadj button{flex:0 0 40px;min-height:34px;padding:0;font-size:18px}
+  @media (max-width:520px){            /* 폰 세로 — 두 팀 칸이 화면 밖으로 밀리지 않게 */
+    body.control{padding:8px}
+    .card{padding:10px}
+    .teams{gap:8px}
+    .team{padding:8px}
+    button{padding:10px 4px;font-size:14px;min-height:48px}
+    .row button.minus{flex:0 0 44px}
+    button.plus{font-size:17px;white-space:nowrap}
+    .row{gap:6px}
+    .gadj button{flex-basis:34px;min-height:32px}
+  }
   .team .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
   .team input[type=text]{flex:1;min-width:0;background:var(--ui-input);border:1px solid var(--ui-input-line);
     color:var(--ui-fg);border-radius:10px;padding:10px;font-size:15px;font-weight:800}
@@ -167,23 +214,32 @@ var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
 
 var DEF = {
   sport:"VOLLEYBALL",
-  home:{name:"HOME", color:"#3B82F6", score:0, sets:0, hist:[], serve:true},
-  away:{name:"AWAY", color:"#EF4444", score:0, sets:0, hist:[], serve:false},
+  home:{name:"HOME", color:"#3B82F6", score:0, sets:0, hist:[], serve:true,  pts:0, games:0},
+  away:{name:"AWAY", color:"#EF4444", score:0, sets:0, hist:[], serve:false, pts:0, games:0},
   stage:"", period:"SET 1",
   showTimer:false, timerRunning:false, timerBase:0, timerAcc:0,
   tournament:"", channel:"",
-  over:false, setTarget:25, bestOf:3
+  over:false, setTarget:25, bestOf:3,
+  /* 테니스: pts 는 이번 게임에서 딴 포인트 수(숫자). 0·15·30·40·AD 는 화면에서만 바꿔 그린다. */
+  tn:{games:6, noAd:false, tb:false, tbServer:"home"}
 };
 
+/* 저장본·서버본을 기본값 위에 얹는다 (예전 저장본에 새 칸이 없어도 깨지지 않게) */
+function merge(v){
+  var d = JSON.parse(JSON.stringify(DEF));
+  for(var k in v) d[k] = v[k];
+  d.home = Object.assign(d.home, v.home||{});      // d 는 DEF 의 복사본이라 DEF 배열을 같이 쓰지 않는다
+  d.away = Object.assign(d.away, v.away||{});
+  d.tn   = Object.assign(d.tn,   v.tn||{});
+  if(!Array.isArray(d.home.hist)) d.home.hist = [];   // Firebase 는 빈 배열을 지운다
+  if(!Array.isArray(d.away.hist)) d.away.hist = [];
+  return d;
+}
 function load(){
   try{
     var v = JSON.parse(localStorage.getItem(KEY));
     if(!v || typeof v!=="object") return JSON.parse(JSON.stringify(DEF));
-    var d = JSON.parse(JSON.stringify(DEF));
-    for(var k in v) d[k] = v[k];
-    d.home = Object.assign({}, DEF.home, v.home||{});
-    d.away = Object.assign({}, DEF.away, v.away||{});
-    return d;
+    return merge(v);
   }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
 }
 var S = load();
@@ -199,12 +255,26 @@ try{ CH = new BroadcastChannel("sb_"+(ROOM||"local")); }catch(e){}
 
 var lastSent = "";     // 내가 올린 내용 — 되돌아오면 무시(무한 반복 차단)
 var putTimer = null;
+var recentSent = [];
+/* Firebase 는 키를 가나다순으로 다시 정렬하고 빈 배열·빈 객체·null 을 지워서 돌려준다.
+   그대로 문자열 비교하면 내 것도 남의 것으로 보여 조작 화면이 계속 다시 그려진다(입력칸 커서가 튐).
+   양쪽을 같은 모양으로 맞춘 뒤 비교한다. */
+function canon(x){
+  if(Array.isArray(x)){ return x.length ? x.map(canon) : undefined; }
+  if(x && typeof x === "object"){
+    var o = {}, ks = Object.keys(x).sort(), n = 0;
+    ks.forEach(function(k){ var v = canon(x[k]); if(v !== undefined){ o[k] = v; n++; } });
+    return n ? o : undefined;
+  }
+  return x === null ? undefined : x;
+}
 function pushRemote(){
   if(!ROOM) return;
   clearTimeout(putTimer);
   putTimer = setTimeout(function(){
     var body = JSON.stringify(S);
-    lastSent = body;
+    lastSent = JSON.stringify(canon(S));
+    recentSent.push(lastSent); if(recentSent.length > 8) recentSent.shift();
     fetch(FB + encodeURIComponent(ROOM) + ".json", {method:"PUT", body:body})
       .then(function(){ setNet(true); })
       .catch(function(){ setNet(false); });
@@ -240,12 +310,8 @@ function subscribe(){
       if(!m || m.data == null) return;
       var v = (m.path === "/") ? m.data : null;
       if(!v) return;                                   // 부분 갱신은 쓰지 않는다(항상 통째로 올림)
-      if(JSON.stringify(v) === lastSent) return;       // 내가 올린 것
-      var d = JSON.parse(JSON.stringify(DEF));
-      for(var k in v) d[k] = v[k];
-      d.home = Object.assign({}, DEF.home, v.home||{});
-      d.away = Object.assign({}, DEF.away, v.away||{});
-      S = d; render(); setNet(true);
+      if(recentSent.indexOf(JSON.stringify(canon(v))) >= 0) return;  // 내가 올린 것 (연달아 누르면 앞선 것이 늦게 돌아온다)
+      S = merge(v); render(); setNet(true);
     }catch(e){}
   };
   es.addEventListener("put", apply);
@@ -303,6 +369,7 @@ function boardHTML(){
       '<div class="srow" style="grid-template-columns:'+cols+'"><div class="sname">'+esc(S.away.name)+'</div>'+ar+'</div>'+
     '</div>';
   }
+  if(S.sport === "TENNIS") return tennisHTML();
   return '<div class="board">'+
     '<div class="side home">'+
       '<div class="bar" style="background:'+esc(S.home.color)+'"></div>'+
@@ -327,6 +394,97 @@ function boardHTML(){
     '</div>'+
   '</div>';
 }
+/* ── 테니스 ── */
+function other(k){ return k==="home" ? "away" : "home"; }
+function ptLabel(k){
+  var a = S[k].pts, b = S[other(k)].pts;
+  if(S.tn.tb) return String(a);                       // 타이브레이크는 1·2·3…
+  if(a>=3 && b>=3) return (!S.tn.noAd && a>b) ? "AD" : "40";
+  return ["0","15","30","40"][Math.min(a,3)];
+}
+function tennisHTML(){
+  var n = Math.max(S.home.hist.length, S.away.hist.length);
+  function row(k){
+    var t = S[k], o = S[other(k)], h = "";
+    for(var i=0;i<n;i++){
+      var a = t.hist[i]||0, b = o.hist[i]||0;
+      h += '<span class="tab'+(a>b?" win":"")+'">'+a+'</span>';
+    }
+    return '<div class="trow">'+
+      '<div class="cbar" style="background:'+esc(t.color)+'"></div>'+
+      '<div class="who"><div class="tname">'+esc(t.name)+'</div>'+(t.serve?'<div class="serve"></div>':"")+'</div>'+
+      (n?'<div class="thist">'+h+'</div>':"")+
+      '<div class="tgm tab">'+t.games+'</div>'+
+      '<div class="tpt tab">'+ptLabel(k)+'</div>'+
+    '</div>';
+  }
+  return '<div class="tboard">'+
+    '<div class="thead"><span>'+
+      (S.stage?'<span class="ts">'+esc(S.stage)+'</span><span class="tsep">-</span>':"")+
+      '<span>'+esc(S.period)+'</span>'+
+      (S.tn.tb?'<span class="tbtag">TIEBREAK</span>':"")+
+    '</span>'+
+    (S.showTimer?'<span class="ttime timer tab">'+fmt(timerMs())+'</span>':"")+
+    '</div>'+
+    row("home")+row("away")+
+  '</div>';
+}
+
+function setServe(k){ S.home.serve = (k==="home"); S.away.serve = (k==="away"); }
+function server(){ return S.home.serve ? "home" : "away"; }
+function hasProgress(){
+  return S.sport === "TENNIS" ? !!(S.home.games||S.away.games) : !!(S.home.score||S.away.score);
+}
+/* 이번 세트를 기록으로 넘긴다 (배구 = 점수, 테니스 = 게임 수) */
+function closeSet(){
+  var tn = S.sport === "TENNIS";
+  var a = tn ? S.home.games : S.home.score, b = tn ? S.away.games : S.away.score;
+  S.home.hist.push(a); S.away.hist.push(b);
+  if(a > b) S.home.sets++; else if(b > a) S.away.sets++;
+  S.home.score = S.away.score = 0;
+  S.home.games = S.away.games = 0;
+  S.home.pts = S.away.pts = 0;
+  S.tn.tb = false;
+  S.period = "SET " + (S.home.hist.length + 1);
+}
+function matchDecided(){
+  var need = Math.floor((S.bestOf||3)/2) + 1;
+  return S.home.sets >= need || S.away.sets >= need;
+}
+/* 포인트 1개 — 게임·세트·타이브레이크·서브 교대까지 여기서 전부 처리한다 */
+function tennisPoint(k){
+  var me = S[k], op = S[other(k)], T = S.tn;
+  me.pts++;
+  if(T.tb){
+    if(me.pts >= 7 && me.pts - op.pts >= 2) return winGame(k);
+    if((me.pts + op.pts) % 2 === 1) setServe(other(server()));   // 첫 1포인트 뒤, 이후 2포인트마다
+    return "";
+  }
+  var won = T.noAd ? me.pts >= 4 : (me.pts >= 4 && me.pts - op.pts >= 2);
+  if(won) return winGame(k);
+  if(me.pts >= 4 && me.pts === op.pts){ me.pts = 3; op.pts = 3; }  // 듀스로 되돌림 (숫자가 끝없이 커지지 않게)
+  return "";
+}
+function winGame(k){
+  var me = S[k], op = S[other(k)], T = S.tn, G = T.games;
+  var wasTb = T.tb;
+  me.games++; me.pts = 0; op.pts = 0; T.tb = false;
+  // 타이브레이크를 먼저 받은 쪽이 다음 세트 첫 서브
+  setServe(wasTb ? other(T.tbServer) : other(server()));
+  if(wasTb || (me.games >= G && me.games - op.games >= 2)){
+    var name = me.name;
+    closeSet();
+    return matchDecided()
+      ? name+" 승리!\n「경기 종료」를 누르면 결과표가 나갑니다"
+      : name+" 세트 획득\n"+S.period+" 시작";
+  }
+  if(me.games === G && op.games === G){
+    T.tb = true; T.tbServer = server();
+    return G+":"+G+" 타이브레이크";
+  }
+  return "";
+}
+
 function brandHTML(){
   var o = "";
   if(S.tournament) o += '<div class="anchor" id="bTour"><div class="brand" style="background:#0f172a;color:#fff">'+esc(S.tournament)+'</div></div>';
@@ -347,6 +505,27 @@ function renderOverlay(){
 /* ── 조작 화면 ── */
 function teamHTML(k){
   var t = S[k], ko = (k==="home"?"왼쪽 팀":"오른쪽 팀");
+  if(S.sport === "TENNIS") return '<div class="team">'+
+    '<div class="top">'+
+      '<input type="color" data-c="'+k+'" value="'+esc(t.color)+'">'+
+      '<input type="text" data-n="'+k+'" value="'+esc(t.name)+'" maxlength="14" placeholder="'+ko+'">'+
+    '</div>'+
+    '<div class="big tab" style="color:'+esc(t.color)+'">'+ptLabel(k)+'</div>'+
+    '<div style="text-align:center;font-size:13px;color:var(--ui-sub);margin:-4px 0 10px;font-weight:700">'+
+      '게임 <b style="color:var(--ui-fg);font-size:16px">'+t.games+'</b> · 세트 <b style="color:var(--ui-fg);font-size:16px">'+t.sets+'</b></div>'+
+    '<div class="row">'+
+      '<button class="minus" data-p="'+k+'|-1">−</button>'+
+      '<button class="plus"  data-p="'+k+'|1">+ 포인트</button>'+
+    '</div>'+
+    '<div class="row" style="margin-top:8px">'+
+      '<button data-serve="'+k+'" class="'+(t.serve?"on":"")+'">'+(t.serve?"🎾 서브":"서브 주기")+'</button>'+
+    '</div>'+
+    '<div class="row gadj">'+
+      '<span>게임 수정</span>'+
+      '<button data-g="'+k+'|-1">−</button>'+
+      '<button data-g="'+k+'|1">+</button>'+
+    '</div>'+
+  '</div>';
   return '<div class="team">'+
     '<div class="top">'+
       '<input type="color" data-c="'+k+'" value="'+esc(t.color)+'">'+
@@ -368,14 +547,18 @@ function renderControl(){
   var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + (ROOM?"&room="+encodeURIComponent(ROOM):"");
   document.getElementById("app").innerHTML =
   '<div class="wrap">'+
-    '<h1>🏐 라이브 스코어보드 — 조작</h1>'+
+    '<h1>'+(S.sport==="TENNIS"?"🎾":S.sport==="VOLLEYBALL"?"🏐":"🏆")+' 라이브 스코어보드 — 조작</h1>'+
     '<div class="sub">여기서 누르면 <b>오버레이 창이 바로 바뀝니다.</b></div>'+
 
     '<div class="card"><h2>점수</h2><div class="teams">'+teamHTML("home")+teamHTML("away")+'</div>'+
       '<div class="grid3" style="margin-top:10px">'+
-        '<button id="swap">↔ 좌우 바꾸기</button>'+
+        '<button id="undo"'+(UNDO.length?"":" disabled style=\"opacity:.4\"")+'>↶ 되돌리기</button>'+
+        '<button id="swap">↔ 좌우</button>'+
         '<button id="endset">세트 종료</button>'+
-        '<button id="over" class="'+(S.over?"on":"")+'">'+(S.over?"경기중으로":"경기 종료")+'</button>'+
+      '</div>'+
+      '<div class="row" style="margin-top:8px">'+
+        (S.sport==="TENNIS"?'<button id="tgTb" class="'+(S.tn.tb?"on":"")+'">'+(S.tn.tb?"🔥 타이브레이크 중":"타이브레이크 켜기")+'</button>':"")+
+        '<button id="over" class="'+(S.over?"on":"")+'">'+(S.over?"경기중으로":"경기 종료 (결과표)")+'</button>'+
       '</div>'+
     '</div>'+
 
@@ -396,8 +579,24 @@ function renderControl(){
       '<label class="f">종목</label>'+
       '<select class="t" id="sport">'+
         '<option value="VOLLEYBALL"'+(S.sport==="VOLLEYBALL"?" selected":"")+'>배구 (세트 표시)</option>'+
+        '<option value="TENNIS"'+(S.sport==="TENNIS"?" selected":"")+'>테니스 (포인트·게임·세트)</option>'+
         '<option value="GENERAL"'+(S.sport==="GENERAL"?" selected":"")+'>일반 (축구·농구 등)</option>'+
       '</select>'+
+      (S.sport==="TENNIS"?
+      '<div class="grid3">'+
+        '<div><label class="f">세트당 게임</label><select class="t" id="tnGames">'+
+          [6,4].map(function(g){ return '<option value="'+g+'"'+(S.tn.games===g?" selected":"")+'>'+g+'게임'+(g===4?" (단축)":"")+'</option>'; }).join("")+
+        '</select></div>'+
+        '<div><label class="f">듀스</label><select class="t" id="tnAd">'+
+          '<option value="ad"'+(S.tn.noAd?"":" selected")+'>어드밴티지</option>'+
+          '<option value="noad"'+(S.tn.noAd?" selected":"")+'>노애드</option>'+
+        '</select></div>'+
+        '<div><label class="f">경기</label><select class="t" id="bestOf">'+
+          [1,3,5].map(function(b){ return '<option value="'+b+'"'+(S.bestOf===b?" selected":"")+'>'+(b===1?"1세트":b+"세트 중 "+(Math.floor(b/2)+1)+"선승")+'</option>'; }).join("")+
+        '</select></div>'+
+      '</div>'+
+      '<div class="hint">'+S.tn.games+':'+S.tn.games+'이 되면 <b>타이브레이크(7점, 2점 차)</b>가 자동으로 켜집니다. 게임이 끝나면 서브도 자동으로 넘어갑니다.</div>'
+      :"")+
       '<div class="grid2" style="margin-top:10px">'+
         '<button id="tgTimer" class="'+(S.showTimer?"on":"")+'">'+(S.showTimer?"⏱ 시간 표시 켬":"시간 표시 끔")+'</button>'+
         '<button id="tgRun">'+(S.timerRunning?"⏸ 시간 멈춤":"▶ 시간 시작")+'</button>'+
@@ -452,30 +651,66 @@ function renderControl(){
   bindControl();
 }
 
+/* 되돌리기 — 누르기 직전 상태를 쌓아 둔다 (이 기기에서 누른 것만) */
+var UNDO = [];
+function snap(){ UNDO.push(JSON.stringify(S)); if(UNDO.length > 60) UNDO.shift(); }
+
 function bindControl(){
   var $ = function(id){ return document.getElementById(id); };
   document.querySelectorAll("[data-s]").forEach(function(b){
     b.onclick = function(){
+      snap();
       var p = b.dataset.s.split("|"), t = S[p[0]], d = +p[1];
       t.score = Math.max(0, t.score + d);
-      if(d > 0){ S.home.serve = (p[0]==="home"); S.away.serve = (p[0]==="away"); }  // 득점한 팀이 서브
+      if(d > 0) setServe(p[0]);                          // 득점한 팀이 서브
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-p]").forEach(function(b){
+    b.onclick = function(){
+      var p = b.dataset.p.split("|"), t = S[p[0]];
+      if(+p[1] < 0){
+        if(!t.pts){ toast("이번 게임 포인트가 없습니다\n지난 게임은 ↶ 되돌리기", 2200); return; }
+        snap(); t.pts--;
+        save(); render(); return;
+      }
+      snap();
+      var msg = tennisPoint(p[0]);
+      save(); render();
+      if(msg) toast(msg, 2600);
+    };
+  });
+  document.querySelectorAll("[data-g]").forEach(function(b){
+    b.onclick = function(){
+      snap();
+      var p = b.dataset.g.split("|"), t = S[p[0]];
+      t.games = Math.max(0, t.games + (+p[1]));
       save(); render();
     };
   });
   document.querySelectorAll("[data-serve]").forEach(function(b){
-    b.onclick = function(){
-      var k = b.dataset.serve;
-      S.home.serve = (k==="home"); S.away.serve = (k==="away");
-      save(); render();
-    };
+    b.onclick = function(){ snap(); setServe(b.dataset.serve); save(); render(); };
   });
   document.querySelectorAll("[data-set]").forEach(function(b){
     b.onclick = function(){
+      snap();
       var t = S[b.dataset.set];
       t.sets = (t.sets + 1) % 4;
       save(); render();
     };
   });
+  $("undo").onclick = function(){
+    if(!UNDO.length) return;
+    S = JSON.parse(UNDO.pop()); save(); render(); toast("되돌렸습니다", 1200);
+  };
+  if($("tgTb")) $("tgTb").onclick = function(){
+    snap(); S.tn.tb = !S.tn.tb; S.home.pts = S.away.pts = 0;
+    if(S.tn.tb) S.tn.tbServer = server();
+    save(); render();
+  };
+  if($("tnGames")) $("tnGames").onchange = function(){ S.tn.games = +$("tnGames").value; save(); render(); };
+  if($("tnAd"))    $("tnAd").onchange    = function(){ S.tn.noAd = $("tnAd").value === "noad"; save(); render(); };
+  if($("bestOf"))  $("bestOf").onchange  = function(){ S.bestOf = +$("bestOf").value; save(); render(); };
   document.querySelectorAll("[data-n]").forEach(function(i){
     i.oninput = function(){ S[i.dataset.n].name = i.value; save(); renderOverlayPreviewOnly(); };
   });
@@ -484,25 +719,23 @@ function bindControl(){
   });
 
   $("swap").onclick = function(){
+    snap();
     var h = S.home; S.home = S.away; S.away = h;
+    if(S.tn.tb) S.tn.tbServer = other(S.tn.tbServer);
     save(); render(); toast("좌우를 바꿨습니다");
   };
   $("endset").onclick = function(){
-    if(S.home.score===0 && S.away.score===0){ toast("점수가 0:0입니다", 1800); return; }
-    S.home.hist.push(S.home.score); S.away.hist.push(S.away.score);
-    if(S.home.score > S.away.score) S.home.sets++; else if(S.away.score > S.home.score) S.away.sets++;
-    S.home.score = 0; S.away.score = 0;
-    var n = S.home.hist.length + 1;
-    S.period = "SET " + n;
-    save(); render(); toast("세트를 저장했습니다\nSET "+n+" 시작");
+    var tn = S.sport === "TENNIS";
+    if(tn ? !(S.home.games||S.away.games) : !(S.home.score||S.away.score)){
+      toast(tn ? "게임이 0:0입니다" : "점수가 0:0입니다", 1800); return;
+    }
+    snap(); closeSet();
+    save(); render(); toast("세트를 저장했습니다\n"+S.period+" 시작");
   };
   $("over").onclick = function(){
+    snap();
     S.over = !S.over;
-    if(S.over && (S.home.score||S.away.score)){        // 마지막 세트가 안 닫혔으면 닫아준다
-      S.home.hist.push(S.home.score); S.away.hist.push(S.away.score);
-      if(S.home.score > S.away.score) S.home.sets++; else if(S.away.score > S.home.score) S.away.sets++;
-      S.home.score = 0; S.away.score = 0;
-    }
+    if(S.over && hasProgress()) closeSet();          // 마지막 세트가 안 닫혔으면 닫아준다
     save(); render();
   };
 
