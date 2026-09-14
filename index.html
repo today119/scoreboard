@@ -92,6 +92,10 @@
   .stage{font-size:11px;font-weight:900;color:var(--bd-stage);text-transform:uppercase;letter-spacing:.18em}
   .period{font-size:17px;font-weight:900;color:var(--bd-period);letter-spacing:.2em;line-height:1}
   .timer{font-size:24px;font-weight:800;color:var(--bd-text);font-family:ui-monospace,Menlo,monospace;line-height:1.1}
+  .nm{display:flex;flex-direction:column;gap:5px}
+  .side.away .nm{align-items:flex-end}
+  .fl{font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--sum-hd);line-height:1;white-space:nowrap}
+  .fl.bonus{color:var(--bd-accent)}
   .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
          letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
 
@@ -141,20 +145,14 @@
   .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px;min-width:0}
   .grid2>*,.grid3>*{min-width:0}
+  button.blink{background:#B45309;border-color:#F59E0B;color:#fff;animation:blink 1s infinite}
+  @keyframes blink{50%{background:#F59E0B}}
+  .chks{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}
+  .chk{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px}
+  .chk input{width:18px;height:18px}
   .gadj{margin-top:8px;align-items:center}
   .gadj span{flex:1;font-size:12px;color:var(--ui-sub);font-weight:700;white-space:nowrap}
   .gadj button{flex:0 0 40px;min-height:34px;padding:0;font-size:18px}
-  @media (max-width:520px){            /* 폰 세로 — 두 팀 칸이 화면 밖으로 밀리지 않게 */
-    body.control{padding:8px}
-    .card{padding:10px}
-    .teams{gap:8px}
-    .team{padding:8px}
-    button{padding:10px 4px;font-size:14px;min-height:48px}
-    .row button.minus{flex:0 0 44px}
-    button.plus{font-size:17px;white-space:nowrap}
-    .row{gap:6px}
-    .gadj button{flex-basis:34px;min-height:32px}
-  }
   .team .top{display:flex;align-items:center;gap:8px;margin-bottom:10px}
   .team input[type=text]{flex:1;min-width:0;background:var(--ui-input);border:1px solid var(--ui-input-line);
     color:var(--ui-fg);border-radius:10px;padding:10px;font-size:15px;font-weight:800}
@@ -186,6 +184,18 @@
     color:#fff;padding:11px 18px;border-radius:12px;font-size:14px;font-weight:700;opacity:0;pointer-events:none;
     transition:opacity .2s;z-index:99;white-space:pre-line;text-align:center}
   .toast.show{opacity:1}
+  /* 맨 끝에 둘 것 — 위의 기본 규칙보다 뒤에 와야 덮어쓴다 */
+  @media (max-width:520px){            /* 폰 세로 — 두 팀 칸이 화면 밖으로 밀리지 않게 */
+    body.control{padding:8px}
+    .card{padding:10px}
+    .teams{gap:8px}
+    .team{padding:8px}
+    button{padding:10px 4px;font-size:14px;min-height:48px;min-width:0}
+    .row button.minus{flex:0 0 44px}
+    button.plus{font-size:17px;white-space:nowrap}
+    .row{gap:6px}
+    .gadj button{flex-basis:34px;min-height:32px}
+  }
 </style>
 </head>
 <body>
@@ -212,16 +222,50 @@ if(!ROOM){ try{ ROOM = localStorage.getItem("sb_room")||""; }catch(e){} }
 var THEME = (Q.get("theme")||"dark").toLowerCase()==="light" ? "light" : "dark";
 var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
 
+/* ── 종목 프리셋 ────────────────────────────────────────────
+   unit     기간 이름 (SET 2, GAME 3 …)          periods  이름이 정해진 기간 (전반·후반 / 1Q…)
+   sets     세트제 — 세트 점·세트 종료·결과표     serve    winner(득점팀) | tt(탁구 2점마다) | tennis
+   target   세트 목표 점수 · winBy 점수차 · cap 상한 · lastTarget 마지막 세트 목표
+   btns     득점 버튼 (농구 1·2·3)                fouls    팀파울 보너스 기준 (0 = 파울 안 씀)
+   timer    up | down (없으면 시간 끔)            timerLen 내려가는 시간(분)
+   직접 설정(CUSTOM)은 S.custom 을 읽어 같은 모양으로 만든다 → PR() */
+var PRESETS = {
+  VOLLEYBALL: {label:"배구",     emoji:"🏐", unit:"SET",  sets:true, serve:"winner", target:25, lastTarget:15, winBy:2, bestOf:5},
+  TENNIS:     {label:"테니스",   emoji:"🎾", unit:"SET",  sets:true, serve:"tennis", bestOf:3},
+  TABLETENNIS:{label:"탁구",     emoji:"🏓", unit:"GAME", sets:true, serve:"tt",     target:11, winBy:2, bestOf:5},
+  BADMINTON:  {label:"배드민턴", emoji:"🏸", unit:"GAME", sets:true, serve:"winner", target:21, winBy:2, cap:30, bestOf:3},
+  JOKGU:      {label:"족구",     emoji:"🦶", unit:"SET",  sets:true, serve:"winner", target:15, winBy:2, bestOf:3},
+  SOCCER:     {label:"축구",     emoji:"⚽", periods:["전반","후반","연장 전반","연장 후반","승부차기"], timer:"up"},
+  BASKETBALL: {label:"농구",     emoji:"🏀", periods:["1Q","2Q","3Q","4Q","OT"], btns:[1,2,3], fouls:5, timer:"down", timerLen:10},
+  JUMPROPE:   {label:"줄넘기",   emoji:"🪢", unit:"ROUND", btns:[1,5,10]},
+  ESPORTS:    {label:"이스포츠", emoji:"🎮", unit:"GAME", sets:true, bestOf:3},
+  CUSTOM:     {label:"직접 설정", emoji:"🏆"}
+};
+function parseBtns(s){
+  var a = String(s||"").split(/[^0-9]+/).map(Number).filter(function(n){ return n>0 && n<=1000; }).slice(0,3);
+  return a.length ? a : [1];
+}
+function PR(){
+  var b = PRESETS[S.sport] || PRESETS.CUSTOM;
+  if(S.sport !== "CUSTOM") return b;
+  var c = S.custom;
+  return { label:b.label, emoji:b.emoji, unit:c.unit, sets:!!c.sets, serve:c.serve?"winner":"",
+           fouls:c.fouls?5:0, btns:parseBtns(c.btns), target:+c.target||0, winBy:2 };
+}
+
 var DEF = {
   sport:"VOLLEYBALL",
-  home:{name:"HOME", color:"#3B82F6", score:0, sets:0, hist:[], serve:true,  pts:0, games:0},
-  away:{name:"AWAY", color:"#EF4444", score:0, sets:0, hist:[], serve:false, pts:0, games:0},
+  home:{name:"HOME", color:"#3B82F6", score:0, sets:0, hist:[], serve:true,  pts:0, games:0, fouls:0},
+  away:{name:"AWAY", color:"#EF4444", score:0, sets:0, hist:[], serve:false, pts:0, games:0, fouls:0},
   stage:"", period:"SET 1",
   showTimer:false, timerRunning:false, timerBase:0, timerAcc:0,
+  timerDir:"up", timerLen:10,                         // 내려가는 시간은 timerLen 분에서 뺀다
   tournament:"", channel:"",
-  over:false, setTarget:25, bestOf:3,
+  over:false, bestOf:3,
+  firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
   /* 테니스: pts 는 이번 게임에서 딴 포인트 수(숫자). 0·15·30·40·AD 는 화면에서만 바꿔 그린다. */
-  tn:{games:6, noAd:false, tb:false, tbServer:"home"}
+  tn:{games:6, noAd:false, tb:false, tbServer:"home"},
+  custom:{unit:"SET", btns:"1", sets:false, serve:false, fouls:false, target:0}
 };
 
 /* 저장본·서버본을 기본값 위에 얹는다 (예전 저장본에 새 칸이 없어도 깨지지 않게) */
@@ -231,6 +275,9 @@ function merge(v){
   d.home = Object.assign(d.home, v.home||{});      // d 는 DEF 의 복사본이라 DEF 배열을 같이 쓰지 않는다
   d.away = Object.assign(d.away, v.away||{});
   d.tn   = Object.assign(d.tn,   v.tn||{});
+  d.custom = Object.assign(d.custom, v.custom||{});
+  if(d.sport === "GENERAL") d.sport = "CUSTOM";       // v1 의 「일반」
+  if(!PRESETS[d.sport]) d.sport = "CUSTOM";
   if(!Array.isArray(d.home.hist)) d.home.hist = [];   // Firebase 는 빈 배열을 지운다
   if(!Array.isArray(d.away.hist)) d.away.hist = [];
   return d;
@@ -287,9 +334,9 @@ function save(push){
     pushRemote();
   }
 }
-if(CH) CH.onmessage = function(e){ if(e.data){ S = e.data; render(); } };
+if(CH) CH.onmessage = function(e){ if(e.data){ S = merge(e.data); render(); } };
 window.addEventListener("storage", function(e){
-  if(e.key === KEY && e.newValue){ try{ S = JSON.parse(e.newValue); render(); }catch(_){} }
+  if(e.key === KEY && e.newValue){ try{ S = merge(JSON.parse(e.newValue)); render(); }catch(_){} }
 });
 
 var NET = null;
@@ -323,6 +370,7 @@ subscribe();
 
 /* ── 타이머 ── */
 function timerMs(){ return S.timerAcc + (S.timerRunning ? (Date.now()-S.timerBase) : 0); }
+function timerShown(){ return S.timerDir === "down" ? (S.timerLen||0)*60000 - timerMs() + 999 : timerMs(); }  // +999: 10:00 에서 시작해 0 에서 끝나게
 function fmt(ms){
   var s = Math.max(0, Math.floor(ms/1000));
   var m = Math.floor(s/60), ss = s%60;
@@ -344,23 +392,43 @@ function posStyle(el){
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
 
+function need(){ return Math.floor((S.bestOf||3)/2) + 1; }   // 이겨야 하는 세트 수 = 세트 점 개수
 function dots(n){
-  var o="";
-  for(var i=1;i<=3;i++) o += '<div class="dot'+(i<=n?" on":"")+'"></div>';
+  var o="", m = Math.min(need(), 4);
+  for(var i=1;i<=m;i++) o += '<div class="dot'+(i<=n?" on":"")+'"></div>';
   return '<div class="sets">'+o+'</div>';
 }
+function sideHTML(k){
+  var t = S[k], p = PR();
+  var foul = "";
+  if(p.fouls){
+    var bonus = t.fouls >= p.fouls;
+    foul = '<div class="fl'+(bonus?" bonus":"")+'">FOUL '+t.fouls+(bonus?" · BONUS":"")+'</div>';
+  }
+  var parts = [
+    '<div class="bar" style="background:'+esc(t.color)+'"></div>',
+    p.sets ? dots(t.sets) : "",
+    '<div class="nm"><div class="tname">'+esc(t.name)+'</div>'+foul+'</div>',
+    (p.serve && t.serve) ? '<div class="serve"></div>' : "",
+    '<div class="score tab">'+t.score+'</div>'
+  ];
+  if(k === "away") parts.reverse();                   // 오른쪽 팀은 거울처럼
+  return '<div class="side '+k+'">'+parts.join("")+'</div>';
+}
 function boardHTML(){
-  var vb = S.sport === "VOLLEYBALL";
   if(S.over){
-    var n = Math.max(S.home.hist.length, S.away.hist.length, 1);
+    var hs = S.home.hist, as = S.away.hist, word = PR().unit || "SET";
+    if(!hs.length){ hs = [S.home.score]; as = [S.away.score]; word = ""; }   // 세트가 없는 종목은 최종 점수 한 칸
+    var n = Math.max(hs.length, as.length, 1);
     var cols = "120px repeat("+n+",44px)";
     var hd = "", hr = "", ar = "";
     for(var i=0;i<n;i++){
-      hd += '<div class="sethd">SET '+(i+1)+'</div>';
-      var a = S.home.hist[i]||0, b = S.away.hist[i]||0;
+      hd += '<div class="sethd">'+(word ? word+' '+(i+1) : 'FINAL')+'</div>';
+      var a = hs[i]||0, b = as[i]||0;
       hr += '<div class="sv'+(a>b?" win":"")+' tab">'+a+'</div>';
       ar += '<div class="sv'+(b>a?" win":"")+' tab">'+b+'</div>';
     }
+    if(!word) cols = "120px 64px";
     return '<div class="summary">'+
       '<div class="srow" style="grid-template-columns:'+cols+';height:auto;margin-bottom:6px">'+
         '<div class="hd">FINAL SCORE</div>'+hd+'</div>'+
@@ -371,27 +439,15 @@ function boardHTML(){
   }
   if(S.sport === "TENNIS") return tennisHTML();
   return '<div class="board">'+
-    '<div class="side home">'+
-      '<div class="bar" style="background:'+esc(S.home.color)+'"></div>'+
-      (vb?dots(S.home.sets):"")+
-      '<div class="tname">'+esc(S.home.name)+'</div>'+
-      (S.home.serve?'<div class="serve"></div>':"")+
-      '<div class="score tab">'+S.home.score+'</div>'+
-    '</div>'+
+    sideHTML("home")+
     '<div class="center">'+
       '<div style="display:flex;align-items:center;gap:8px">'+
         (S.stage?'<span class="stage">'+esc(S.stage)+'</span><span style="color:#fff;opacity:.3;font-size:10px">/</span>':"")+
         '<span class="period">'+esc(S.period)+'</span>'+
       '</div>'+
-      (S.showTimer?'<div class="timer tab">'+fmt(timerMs())+'</div>':"")+
+      (S.showTimer?'<div class="timer tab">'+fmt(timerShown())+'</div>':"")+
     '</div>'+
-    '<div class="side away">'+
-      '<div class="score tab">'+S.away.score+'</div>'+
-      (S.away.serve?'<div class="serve"></div>':"")+
-      '<div class="tname">'+esc(S.away.name)+'</div>'+
-      (vb?dots(S.away.sets):"")+
-      '<div class="bar" style="background:'+esc(S.away.color)+'"></div>'+
-    '</div>'+
+    sideHTML("away")+
   '</div>';
 }
 /* ── 테니스 ── */
@@ -424,7 +480,7 @@ function tennisHTML(){
       '<span>'+esc(S.period)+'</span>'+
       (S.tn.tb?'<span class="tbtag">TIEBREAK</span>':"")+
     '</span>'+
-    (S.showTimer?'<span class="ttime timer tab">'+fmt(timerMs())+'</span>':"")+
+    (S.showTimer?'<span class="ttime timer tab">'+fmt(timerShown())+'</span>':"")+
     '</div>'+
     row("home")+row("away")+
   '</div>';
@@ -435,7 +491,7 @@ function server(){ return S.home.serve ? "home" : "away"; }
 function hasProgress(){
   return S.sport === "TENNIS" ? !!(S.home.games||S.away.games) : !!(S.home.score||S.away.score);
 }
-/* 이번 세트를 기록으로 넘긴다 (배구 = 점수, 테니스 = 게임 수) */
+/* 이번 세트를 기록으로 넘긴다 (세트제 = 점수, 테니스 = 게임 수) */
 function closeSet(){
   var tn = S.sport === "TENNIS";
   var a = tn ? S.home.games : S.home.score, b = tn ? S.away.games : S.away.score;
@@ -445,11 +501,62 @@ function closeSet(){
   S.home.games = S.away.games = 0;
   S.home.pts = S.away.pts = 0;
   S.tn.tb = false;
-  S.period = "SET " + (S.home.hist.length + 1);
+  S.period = (PR().unit||"SET") + " " + (S.home.hist.length + 1);
+  if(PR().serve === "tt"){ S.firstServe = other(S.firstServe); ttServe(); }   // 탁구: 세트마다 첫 서브 교대
 }
-function matchDecided(){
-  var need = Math.floor((S.bestOf||3)/2) + 1;
-  return S.home.sets >= need || S.away.sets >= need;
+function matchDecided(){ return S.home.sets >= need() || S.away.sets >= need(); }
+
+/* 세트 목표 점수 — 배구 마지막 세트는 15점 */
+function setTarget(){
+  var p = PR();
+  if(!p.target) return 0;
+  var last = p.lastTarget && S.bestOf > 1 && S.home.hist.length === S.bestOf - 1;
+  return last ? p.lastTarget : p.target;
+}
+/* 이번 세트를 이미 딴 팀 ("home"|"away"|"") — 자동으로 끝내지 않고 「세트 종료」를 깜빡이게만 한다 */
+function setWinner(){
+  var t = setTarget(), p = PR();
+  if(!t || !p.sets || S.sport === "TENNIS") return "";
+  function won(x, y){ return (x >= t && x - y >= (p.winBy||2)) || (p.cap && x >= p.cap); }
+  return won(S.home.score, S.away.score) ? "home" : won(S.away.score, S.home.score) ? "away" : "";
+}
+/* 탁구 서브: 2점마다 교대, 듀스(10:10)부터는 1점마다 */
+function ttServe(){
+  var h = S.home.score, a = S.away.score, d = (setTarget()||11) - 1, n = h + a;
+  var sw = (h >= d && a >= d) ? d + (n - 2*d) : Math.floor(n/2);
+  setServe(sw % 2 ? other(S.firstServe) : S.firstServe);
+}
+
+/* 기간 넘기기 — 전반→후반, 1Q→2Q, ROUND 1→2. 시간은 처음으로 */
+function firstPeriod(){
+  var p = PR();
+  if(p.periods) return p.periods[0];
+  return (p.unit ? p.unit + " " : "") + "1";
+}
+function stepPeriod(dir){
+  var p = PR();
+  if(p.periods){
+    var i = p.periods.indexOf(S.period);
+    i = (i < 0) ? (dir > 0 ? 0 : 0) : Math.max(0, Math.min(p.periods.length-1, i + dir));
+    S.period = p.periods[i];
+  }else{
+    var m = /(\d+)\s*$/.exec(S.period), n = Math.max(1, (m ? +m[1] : 0) + dir);
+    S.period = (p.unit ? p.unit + " " : "") + n;
+  }
+  if(p.fouls && S.period !== "OT"){ S.home.fouls = 0; S.away.fouls = 0; }   // 팀파울은 쿼터마다 (연장은 4쿼터에 이어서)
+  S.timerAcc = 0; S.timerRunning = false; S.timerBase = Date.now();
+}
+/* 종목을 바꾸면 그 종목 기본값으로 */
+function applySport(v){
+  S.sport = v;
+  var p = PR();
+  if(p.bestOf) S.bestOf = p.bestOf;
+  S.showTimer = !!p.timer;
+  S.timerDir = p.timer || "up";
+  if(p.timerLen) S.timerLen = p.timerLen;
+  S.timerAcc = 0; S.timerRunning = false;
+  S.period = firstPeriod();
+  if(p.serve === "tt") ttServe();
 }
 /* 포인트 1개 — 게임·세트·타이브레이크·서브 교대까지 여기서 전부 처리한다 */
 function tennisPoint(k){
@@ -520,26 +627,81 @@ function teamHTML(k){
     '<div class="row" style="margin-top:8px">'+
       '<button data-serve="'+k+'" class="'+(t.serve?"on":"")+'">'+(t.serve?"🎾 서브":"서브 주기")+'</button>'+
     '</div>'+
-    '<div class="row gadj">'+
-      '<span>게임 수정</span>'+
-      '<button data-g="'+k+'|-1">−</button>'+
-      '<button data-g="'+k+'|1">+</button>'+
-    '</div>'+
+    adjHTML("게임 수정", k, "games", "")+
   '</div>';
+  var p = PR(), btns = p.btns || [1];
   return '<div class="team">'+
     '<div class="top">'+
       '<input type="color" data-c="'+k+'" value="'+esc(t.color)+'">'+
       '<input type="text" data-n="'+k+'" value="'+esc(t.name)+'" maxlength="14" placeholder="'+ko+'">'+
     '</div>'+
-    '<div class="big tab" style="color:'+esc(t.color)+'">'+t.score+'</div>'+
-    '<div class="row">'+
-      '<button class="minus" data-s="'+k+'|-1">−</button>'+
-      '<button class="plus"  data-s="'+k+'|1">+ 1점</button>'+
+    '<div class="big tab" data-edit="'+k+'" title="눌러서 직접 입력" style="color:'+esc(t.color)+';cursor:pointer">'+t.score+'</div>'+
+    (btns.length > 1
+      /* 버튼이 여럿이면(농구 1·2·3) 폰에서 잘리지 않게 −는 아래 작은 줄로 */
+      ? '<div class="row">'+btns.map(function(n){
+          return '<button class="plus" data-s="'+k+'|'+n+'">+'+n+'</button>';
+        }).join("")+'</div>'+
+        '<div class="row gadj"><span>잘못 누름</span><button data-s="'+k+'|-1">−1</button></div>'
+      : '<div class="row">'+
+          '<button class="minus" data-s="'+k+'|-1">−</button>'+
+          '<button class="plus" data-s="'+k+'|'+btns[0]+'">+ '+btns[0]+'점</button>'+
+        '</div>')+
+    (p.serve ? '<div class="row" style="margin-top:8px">'+
+      '<button data-serve="'+k+'" class="'+(t.serve?"on":"")+'">'+(t.serve?p.emoji+" 서브":"서브 주기")+'</button>'+
+    '</div>' : "")+
+    (p.sets ? adjHTML("세트", k, "sets", t.sets) : "")+
+    (p.fouls ? adjHTML("팀파울", k, "fouls", t.fouls) : "")+
+  '</div>';
+}
+/* 종목별 설정 칸 */
+function sportOptionsHTML(){
+  var p = PR(), o = "";
+  function sel(id, pairs, cur){
+    return '<select class="t" id="'+id+'">'+pairs.map(function(x){
+      return '<option value="'+x[0]+'"'+(String(cur)===String(x[0])?" selected":"")+'>'+x[1]+'</option>';
+    }).join("")+'</select>';
+  }
+  if(S.sport === "CUSTOM"){
+    var c = S.custom;
+    function chk(f, label){
+      return '<label class="chk"><input type="checkbox" data-cu="'+f+'"'+(c[f]?" checked":"")+'> '+label+'</label>';
+    }
+    o += '<div class="grid3">'+
+      '<div><label class="f">기간 이름</label><input class="t" data-cu="unit" value="'+esc(c.unit)+'" maxlength="8" placeholder="SET / 이닝 / 라운드"></div>'+
+      '<div><label class="f">점수 버튼</label><input class="t" data-cu="btns" value="'+esc(c.btns)+'" maxlength="12" placeholder="1 또는 1,2,3"></div>'+
+      '<div><label class="f">세트 목표점수</label><input class="t" data-cu="target" type="number" min="0" value="'+esc(c.target)+'" placeholder="0=없음"></div>'+
     '</div>'+
-    '<div class="row" style="margin-top:8px">'+
-      '<button data-serve="'+k+'" class="'+(t.serve?"on":"")+'">'+(t.serve?"🏐 서브권":"서브권 주기")+'</button>'+
-      '<button data-set="'+k+'">세트 획득 '+t.sets+'</button>'+
+    '<div class="chks">'+chk("sets","세트제 (세트 점·세트 종료)")+chk("serve","서브권 표시")+chk("fouls","팀파울 (5개면 BONUS)")+'</div>'+
+    '<div class="hint">예) 피구 : 기간 이름 「라운드」, 세트제 체크 · 야구식 : 「이닝」, 버튼 「1,2,3」 · 목표점수를 넣으면 도달했을 때 「세트 종료」가 깜빡입니다.</div>';
+  }
+  if(S.sport === "TENNIS"){
+    o += '<div class="grid2">'+
+      '<div><label class="f">세트당 게임</label>'+sel("tnGames", [[6,"6게임"],[4,"4게임 (단축)"]], S.tn.games)+'</div>'+
+      '<div><label class="f">듀스</label>'+sel("tnAd", [["ad","어드밴티지"],["noad","노애드"]], S.tn.noAd?"noad":"ad")+'</div>'+
     '</div>'+
+    '<div class="hint">'+S.tn.games+':'+S.tn.games+'이 되면 <b>타이브레이크(7점, 2점 차)</b>가 자동으로 켜집니다. 게임이 끝나면 서브도 자동으로 넘어갑니다.</div>';
+  }
+  if(p.sets){
+    o += '<label class="f">경기 방식</label>'+
+      sel("bestOf", [1,3,5,7].map(function(b){ return [b, b===1 ? "단판" : b+(p.unit==="GAME"?"게임":"세트")+" 중 "+(Math.floor(b/2)+1)+"선승"]; }), S.bestOf);
+    var t = setTarget();
+    if(t && S.sport !== "CUSTOM"){
+      o += '<div class="hint">'+p.label+' : <b>'+p.target+'점'+(p.lastTarget?' (마지막 세트 '+p.lastTarget+'점)':'')+
+        ', '+(p.winBy||2)+'점 차'+(p.cap?', '+p.cap+'점 상한':'')+'</b>. 도달하면 「세트 종료」가 깜빡입니다 — 최종 점수를 보여준 뒤 누르세요.'+
+        (p.serve==="tt"?'<br>서브는 <b>2점마다 자동 교대</b>(듀스부터 1점마다). 첫 서브만 맞춰 주세요.':'')+'</div>';
+    }
+  }
+  if(p.fouls && S.sport !== "CUSTOM"){
+    o += '<div class="hint">팀파울은 「다음 ▶」으로 쿼터를 넘기면 0으로 돌아갑니다 (OT는 4쿼터에 이어서). '+p.fouls+'개부터 <b>BONUS</b> 표시.</div>';
+  }
+  return o;
+}
+/* 작은 ± 줄 — 세트 수·팀파울을 손으로 고칠 때 */
+function adjHTML(label, k, field, val){
+  return '<div class="row gadj">'+
+    '<span>'+label+' <b style="color:var(--ui-fg);font-size:15px">'+val+'</b></span>'+
+    '<button data-adj="'+k+'|'+field+'|-1">−</button>'+
+    '<button data-adj="'+k+'|'+field+'|1">+</button>'+
   '</div>';
 }
 function renderControl(){
@@ -547,15 +709,22 @@ function renderControl(){
   var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + (ROOM?"&room="+encodeURIComponent(ROOM):"");
   document.getElementById("app").innerHTML =
   '<div class="wrap">'+
-    '<h1>'+(S.sport==="TENNIS"?"🎾":S.sport==="VOLLEYBALL"?"🏐":"🏆")+' 라이브 스코어보드 — 조작</h1>'+
+    '<h1>'+PR().emoji+' 라이브 스코어보드 — 조작</h1>'+
     '<div class="sub">여기서 누르면 <b>오버레이 창이 바로 바뀝니다.</b></div>'+
 
-    '<div class="card"><h2>점수</h2><div class="teams">'+teamHTML("home")+teamHTML("away")+'</div>'+
+    '<div class="card"><h2>'+PR().emoji+' '+esc(PR().label)+' · '+esc(S.period)+'</h2><div class="teams">'+teamHTML("home")+teamHTML("away")+'</div>'+
       '<div class="grid3" style="margin-top:10px">'+
         '<button id="undo"'+(UNDO.length?"":" disabled style=\"opacity:.4\"")+'>↶ 되돌리기</button>'+
         '<button id="swap">↔ 좌우</button>'+
-        '<button id="endset">세트 종료</button>'+
+        (PR().sets
+          ? '<button id="endset"'+(setWinner()?' class="blink"':'')+'>세트 종료</button>'
+          : '<button data-step="1">다음 ▶</button>')+
       '</div>'+
+      (PR().sets ? "" :
+      '<div class="row" style="margin-top:8px">'+
+        '<button data-step="-1" style="flex:0 0 30%">◀ 이전</button>'+
+        '<div style="flex:1;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px">'+esc(S.period||"-")+'</div>'+
+      '</div>')+
       '<div class="row" style="margin-top:8px">'+
         (S.sport==="TENNIS"?'<button id="tgTb" class="'+(S.tn.tb?"on":"")+'">'+(S.tn.tb?"🔥 타이브레이크 중":"타이브레이크 켜기")+'</button>':"")+
         '<button id="over" class="'+(S.over?"on":"")+'">'+(S.over?"경기중으로":"경기 종료 (결과표)")+'</button>'+
@@ -578,31 +747,27 @@ function renderControl(){
       '</div>'+
       '<label class="f">종목</label>'+
       '<select class="t" id="sport">'+
-        '<option value="VOLLEYBALL"'+(S.sport==="VOLLEYBALL"?" selected":"")+'>배구 (세트 표시)</option>'+
-        '<option value="TENNIS"'+(S.sport==="TENNIS"?" selected":"")+'>테니스 (포인트·게임·세트)</option>'+
-        '<option value="GENERAL"'+(S.sport==="GENERAL"?" selected":"")+'>일반 (축구·농구 등)</option>'+
+        Object.keys(PRESETS).map(function(k){
+          return '<option value="'+k+'"'+(S.sport===k?" selected":"")+'>'+PRESETS[k].emoji+' '+PRESETS[k].label+'</option>';
+        }).join("")+
       '</select>'+
-      (S.sport==="TENNIS"?
-      '<div class="grid3">'+
-        '<div><label class="f">세트당 게임</label><select class="t" id="tnGames">'+
-          [6,4].map(function(g){ return '<option value="'+g+'"'+(S.tn.games===g?" selected":"")+'>'+g+'게임'+(g===4?" (단축)":"")+'</option>'; }).join("")+
-        '</select></div>'+
-        '<div><label class="f">듀스</label><select class="t" id="tnAd">'+
-          '<option value="ad"'+(S.tn.noAd?"":" selected")+'>어드밴티지</option>'+
-          '<option value="noad"'+(S.tn.noAd?" selected":"")+'>노애드</option>'+
-        '</select></div>'+
-        '<div><label class="f">경기</label><select class="t" id="bestOf">'+
-          [1,3,5].map(function(b){ return '<option value="'+b+'"'+(S.bestOf===b?" selected":"")+'>'+(b===1?"1세트":b+"세트 중 "+(Math.floor(b/2)+1)+"선승")+'</option>'; }).join("")+
-        '</select></div>'+
-      '</div>'+
-      '<div class="hint">'+S.tn.games+':'+S.tn.games+'이 되면 <b>타이브레이크(7점, 2점 차)</b>가 자동으로 켜집니다. 게임이 끝나면 서브도 자동으로 넘어갑니다.</div>'
-      :"")+
-      '<div class="grid2" style="margin-top:10px">'+
+      sportOptionsHTML()+
+      '<label class="f">시간</label>'+
+      '<div class="grid2">'+
         '<button id="tgTimer" class="'+(S.showTimer?"on":"")+'">'+(S.showTimer?"⏱ 시간 표시 켬":"시간 표시 끔")+'</button>'+
         '<button id="tgRun">'+(S.timerRunning?"⏸ 시간 멈춤":"▶ 시간 시작")+'</button>'+
       '</div>'+
       '<div class="grid2" style="margin-top:8px">'+
-        '<button id="rstTimer">시간 0으로</button>'+
+        '<select class="t" id="timerDir">'+
+          '<option value="up"'+(S.timerDir!=="down"?" selected":"")+'>⬆ 올라감 (0:00부터)</option>'+
+          '<option value="down"'+(S.timerDir==="down"?" selected":"")+'>⬇ 내려감 (정한 분부터)</option>'+
+        '</select>'+
+        (S.timerDir==="down"
+          ? '<div class="row" style="align-items:center"><input class="t" id="timerLen" type="number" min="0" step="0.5" value="'+S.timerLen+'" style="flex:1"><span style="font-weight:800;color:var(--ui-sub)">분</span></div>'
+          : '<div></div>')+
+      '</div>'+
+      '<div class="grid2" style="margin-top:8px">'+
+        '<button id="rstTimer">시간 처음으로</button>'+
         '<button id="reset" class="warn">전부 초기화</button>'+
       '</div>'+
     '</div>'+
@@ -660,10 +825,17 @@ function bindControl(){
   document.querySelectorAll("[data-s]").forEach(function(b){
     b.onclick = function(){
       snap();
-      var p = b.dataset.s.split("|"), t = S[p[0]], d = +p[1];
+      var p = b.dataset.s.split("|"), t = S[p[0]], d = +p[1], rule = PR().serve;
+      var before = setWinner();
       t.score = Math.max(0, t.score + d);
-      if(d > 0) setServe(p[0]);                          // 득점한 팀이 서브
+      if(rule === "winner" && d > 0) setServe(p[0]);    // 득점한 팀이 서브
+      if(rule === "tt") ttServe();
       save(); render();
+      var w = setWinner();
+      if(w && w !== before){
+        var last = S[w].sets + 1 >= need();
+        toast(S[w].name+" "+(last?"경기":"세트")+" 획득 "+S.home.score+":"+S.away.score+"\n「세트 종료」를 누르세요", 3000);
+      }
     };
   });
   document.querySelectorAll("[data-p]").forEach(function(b){
@@ -680,23 +852,32 @@ function bindControl(){
       if(msg) toast(msg, 2600);
     };
   });
-  document.querySelectorAll("[data-g]").forEach(function(b){
+  document.querySelectorAll("[data-adj]").forEach(function(b){
     b.onclick = function(){
       snap();
-      var p = b.dataset.g.split("|"), t = S[p[0]];
-      t.games = Math.max(0, t.games + (+p[1]));
+      var p = b.dataset.adj.split("|"), t = S[p[0]];
+      t[p[1]] = Math.max(0, (t[p[1]]||0) + (+p[2]));
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-edit]").forEach(function(el){
+    el.onclick = function(){
+      var t = S[el.dataset.edit];
+      var v = prompt(t.name + " 점수", t.score);
+      if(v === null) return;
+      v = parseInt(v, 10);
+      if(isNaN(v) || v < 0){ toast("0 이상의 숫자를 넣어 주세요", 2000); return; }
+      snap(); t.score = v;
+      if(PR().serve === "tt") ttServe();
       save(); render();
     };
   });
   document.querySelectorAll("[data-serve]").forEach(function(b){
-    b.onclick = function(){ snap(); setServe(b.dataset.serve); save(); render(); };
-  });
-  document.querySelectorAll("[data-set]").forEach(function(b){
     b.onclick = function(){
       snap();
-      var t = S[b.dataset.set];
-      t.sets = (t.sets + 1) % 4;
-      save(); render();
+      var k = b.dataset.serve;
+      if(PR().serve === "tt" && server() !== k) S.firstServe = other(S.firstServe);   // 계산 기준을 같이 옮긴다
+      setServe(k); save(); render();
     };
   });
   $("undo").onclick = function(){
@@ -722,20 +903,26 @@ function bindControl(){
     snap();
     var h = S.home; S.home = S.away; S.away = h;
     if(S.tn.tb) S.tn.tbServer = other(S.tn.tbServer);
+    S.firstServe = other(S.firstServe);
     save(); render(); toast("좌우를 바꿨습니다");
   };
-  $("endset").onclick = function(){
+  if($("endset")) $("endset").onclick = function(){
     var tn = S.sport === "TENNIS";
-    if(tn ? !(S.home.games||S.away.games) : !(S.home.score||S.away.score)){
-      toast(tn ? "게임이 0:0입니다" : "점수가 0:0입니다", 1800); return;
-    }
+    if(!hasProgress()){ toast(tn ? "게임이 0:0입니다" : "점수가 0:0입니다", 1800); return; }
     snap(); closeSet();
-    save(); render(); toast("세트를 저장했습니다\n"+S.period+" 시작");
+    save(); render();
+    if(matchDecided()){
+      var w = S.home.sets > S.away.sets ? S.home : S.away;
+      toast(w.name+" 승리! ("+S.home.sets+":"+S.away.sets+")\n「경기 종료」를 누르면 결과표가 나갑니다", 3200);
+    }else toast("세트를 저장했습니다\n"+S.period+" 시작");
   };
+  document.querySelectorAll("[data-step]").forEach(function(b){
+    b.onclick = function(){ snap(); stepPeriod(+b.dataset.step); save(); render(); };
+  });
   $("over").onclick = function(){
     snap();
     S.over = !S.over;
-    if(S.over && hasProgress()) closeSet();          // 마지막 세트가 안 닫혔으면 닫아준다
+    if(S.over && PR().sets && hasProgress()) closeSet();   // 마지막 세트가 안 닫혔으면 닫아준다
     save(); render();
   };
 
@@ -744,7 +931,22 @@ function bindControl(){
   });
   $("tour").oninput = function(){ S.tournament = $("tour").value; save(); };
   $("ch").oninput   = function(){ S.channel    = $("ch").value;   save(); };
-  $("sport").onchange = function(){ S.sport = $("sport").value; save(); render(); };
+  $("sport").onchange = function(){
+    snap(); applySport($("sport").value); save(); render();
+    toast(PR().emoji+" "+PR().label+"(으)로 바꿨습니다\n점수는 그대로입니다 — 새 경기면 「전부 초기화」", 2600);
+  };
+  if($("timerDir")) $("timerDir").onchange = function(){ S.timerDir = $("timerDir").value; save(); render(); };
+  if($("timerLen")) $("timerLen").onchange = function(){
+    S.timerLen = Math.max(0, parseFloat($("timerLen").value)||0); save(); render();
+  };
+  document.querySelectorAll("[data-cu]").forEach(function(el){
+    el.onchange = function(){
+      var f = el.dataset.cu;
+      S.custom[f] = (el.type === "checkbox") ? el.checked : el.value;
+      if(f === "unit") S.period = firstPeriod();
+      save(); render();
+    };
+  });
 
   $("tgTimer").onclick = function(){ S.showTimer = !S.showTimer; save(); render(); };
   $("tgRun").onclick = function(){
@@ -755,7 +957,13 @@ function bindControl(){
   $("rstTimer").onclick = function(){ S.timerAcc = 0; S.timerBase = Date.now(); save(); render(); };
   $("reset").onclick = function(){
     if(!confirm("팀 이름·점수·세트를 전부 처음 상태로 돌립니다.")) return;
-    S = JSON.parse(JSON.stringify(DEF)); save(); render(); toast("초기화했습니다");
+    snap();
+    var keep = {sport:S.sport, tn:S.tn, custom:S.custom, bestOf:S.bestOf, timerDir:S.timerDir, timerLen:S.timerLen, showTimer:S.showTimer};
+    S = JSON.parse(JSON.stringify(DEF));
+    for(var k in keep) S[k] = keep[k];               // 종목·경기 방식 설정은 남긴다
+    S.tn.tb = false; S.period = firstPeriod();
+    if(PR().serve === "tt") ttServe();
+    save(); render(); toast("초기화했습니다 (종목 설정은 그대로)");
   };
 
   $("mkRoom").onclick = function(){
@@ -825,8 +1033,8 @@ render();
 /* 시간 표시가 켜져 있으면 1초마다 갱신 */
 setInterval(function(){
   if(!S.showTimer) return;
-  if(VIEW === "overlay"){ var t = document.querySelector(".timer"); if(t) t.textContent = fmt(timerMs()); }
-  else { var p = document.querySelector(".prev .timer"); if(p) p.textContent = fmt(timerMs()); }
+  if(VIEW === "overlay"){ var t = document.querySelector(".timer"); if(t) t.textContent = fmt(timerShown()); }
+  else { var p = document.querySelector(".prev .timer"); if(p) p.textContent = fmt(timerShown()); }
 }, 500);
 })();
 </script>
