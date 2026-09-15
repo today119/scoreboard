@@ -89,7 +89,8 @@
   .center{background:var(--bd-center);padding:0 30px;border-left:1px solid var(--bd-center-line);
           border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;
           justify-content:center;align-items:center;min-width:150px;gap:2px}
-  .stage{font-size:11px;font-weight:900;color:var(--bd-stage);text-transform:uppercase;letter-spacing:.18em}
+  .stage{font-size:11px;font-weight:900;color:var(--bd-stage);text-transform:uppercase;letter-spacing:.18em;line-height:1.2}
+  .center .stage{margin-bottom:3px}
   .period{font-size:17px;font-weight:900;color:var(--bd-period);letter-spacing:.2em;line-height:1}
   .timer{font-size:24px;font-weight:800;color:var(--bd-text);font-family:ui-monospace,Menlo,monospace;line-height:1.1}
   .nm{display:flex;flex-direction:column;gap:5px}
@@ -97,7 +98,12 @@
   .fl{font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--sum-hd);line-height:1;white-space:nowrap}
   .fl.bonus{color:var(--bd-accent)}
   .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
-         letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+         letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4);
+         display:flex;align-items:center;gap:12px;white-space:nowrap}
+  .brand.hasimg{padding:6px 16px 6px 8px}
+  .brand img{height:44px;max-width:220px;object-fit:contain;display:block}
+  .brand.imgonly{padding:0;background:none;border:0;box-shadow:none}
+  .brand.imgonly img{height:64px;max-width:280px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}
 
   /* 테니스 — 머리띠 + 선수 2줄 (지난 세트 | 게임 | 포인트) */
   .tboard{display:flex;flex-direction:column;min-width:440px;background:var(--bd-bg);backdrop-filter:blur(14px);
@@ -174,7 +180,7 @@
            border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
   .wcenter .wmeta{display:flex;align-items:center}
   .wcenter .period{font-size:26px}
-  .wcenter .stage{font-size:15px}
+  .wcenter .stage{font-size:16px}
   .wcenter .timer{font-size:38px}
 
   /* 경기 종료 요약 */
@@ -211,6 +217,13 @@
   .chks{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}
   .chk{font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px}
   .chk input{width:18px;height:18px}
+  .imgrow{display:flex;align-items:center;gap:8px;margin-top:6px;min-height:44px}
+  .imgrow img{height:40px;max-width:120px;object-fit:contain;background:repeating-conic-gradient(#8883 0 25%,#0000 0 50%) 0 0/12px 12px;border-radius:6px}
+  .imgrow .noimg{font-size:12px;color:var(--ui-sub);flex:1}
+  .imgrow img+.imgbtn{margin-left:auto}
+  .imgbtn{display:inline-flex;align-items:center;gap:4px;font-size:13px;font-weight:800;padding:9px 12px;border-radius:10px;
+          border:1px solid var(--ui-input-line);background:var(--ui-btn);color:var(--ui-fg);cursor:pointer;white-space:nowrap}
+  button.imgdel{flex:none;min-height:0;padding:9px 12px;font-size:13px}
   .gadj{margin-top:8px;align-items:center}
   .gadj span{flex:1;font-size:12px;color:var(--ui-sub);font-weight:700;white-space:nowrap}
   .gadj button{flex:0 0 40px;min-height:34px;padding:0;font-size:18px}
@@ -225,7 +238,8 @@
          background:var(--ui-btn);color:var(--ui-fg);font-size:15px;padding:14px;cursor:pointer;flex:1;min-height:52px}
   button:active{opacity:.7}
   button.plus{background:#1D4ED8;border-color:#3B82F6;color:#fff;font-size:22px}
-  button.minus{background:var(--ui-btn-sub);font-size:22px}
+  button.minus{background:#DC2626;border-color:#B91C1C;color:#fff;font-size:22px}
+  button.neg{background:#DC2626;border-color:#B91C1C;color:#fff}
   button.on{background:#166534;border-color:#22C55E;color:#DCFCE7}
   button.warn{background:#B91C1C;border-color:#991B1B;color:#fff}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -439,10 +453,70 @@ function save(push){
     pushRemote();
   }
 }
-if(CH) CH.onmessage = function(e){ if(e.data){ S = merge(e.data); render(); } };
+if(CH) CH.onmessage = function(e){
+  if(!e.data) return;
+  if(e.data.__img){ IMG = e.data.__img; render(); return; }
+  S = merge(e.data); render();
+};
 window.addEventListener("storage", function(e){
   if(e.key === KEY && e.newValue){ try{ S = merge(JSON.parse(e.newValue)); render(); }catch(_){} }
 });
+
+/* ── 로고 이미지 ────────────────────────────────────────────
+   점수(S)와 따로 둔다 — S 는 누를 때마다 통째로 올라가는데 이미지까지 실으면 매번 수십 KB 를 보내게 된다.
+   서버 경로도 따로: scoreboard_img/<방코드> */
+var FB_IMG = "https://matchmaker-28187-default-rtdb.asia-southeast1.firebasedatabase.app/scoreboard_img/";
+function imgKey(){ return "sb_img_v1" + (ROOM ? "_"+ROOM : ""); }
+function loadImg(){
+  try{ var v = JSON.parse(localStorage.getItem(imgKey())); return {tour:(v&&v.tour)||"", ch:(v&&v.ch)||""}; }
+  catch(e){ return {tour:"", ch:""}; }
+}
+var IMG = loadImg();
+function saveImg(){
+  try{ localStorage.setItem(imgKey(), JSON.stringify(IMG)); }catch(e){ toast("이 기기 저장 공간이 부족합니다", 2400); }
+  if(CH) try{ CH.postMessage({__img:IMG}); }catch(e){}
+  if(ROOM) fetch(FB_IMG + encodeURIComponent(ROOM) + ".json", {method:"PUT", body:JSON.stringify(IMG)}).catch(function(){});
+}
+var esImg = null;
+function subscribeImg(){
+  if(!ROOM || !window.EventSource) return;
+  try{ if(esImg) esImg.close(); }catch(e){}
+  esImg = new EventSource(FB_IMG + encodeURIComponent(ROOM) + ".json");
+  esImg.addEventListener("put", function(ev){
+    try{
+      var m = JSON.parse(ev.data);
+      if(m.path !== "/") return;
+      if(m.data == null){ if(VIEW === "control" && (IMG.tour || IMG.ch)) saveImg(); return; }
+      var v = {tour:m.data.tour||"", ch:m.data.ch||""};
+      if(v.tour === IMG.tour && v.ch === IMG.ch) return;
+      IMG = v;
+      try{ localStorage.setItem(imgKey(), JSON.stringify(IMG)); }catch(e){}
+      render();
+    }catch(e){}
+  });
+}
+/* 올린 사진을 방송용 크기로 줄인다 — 투명 배경 유지(webp), 안 되면 png */
+function shrinkImage(file, done){
+  if(!/^image\//.test(file.type)){ done("이미지 파일이 아닙니다"); return; }
+  var rd = new FileReader();
+  rd.onerror = function(){ done("파일을 읽지 못했습니다"); };
+  rd.onload = function(){
+    var im = new Image();
+    im.onerror = function(){ done("이미지를 열지 못했습니다"); };
+    im.onload = function(){
+      var r = Math.min(1, 480/im.width, 200/im.height);
+      var w = Math.max(1, Math.round(im.width*r)), h = Math.max(1, Math.round(im.height*r));
+      var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(im, 0, 0, w, h);
+      var url = cv.toDataURL("image/webp", 0.9);
+      if(url.indexOf("data:image/webp") !== 0) url = cv.toDataURL("image/png");
+      if(url.length > 400000){ done("이미지가 너무 큽니다 — 더 단순한 로고를 써 주세요"); return; }
+      done(null, url);
+    };
+    im.src = rd.result;
+  };
+  rd.readAsDataURL(file);
+}
 
 var NET = null;
 function setNet(ok){
@@ -476,6 +550,7 @@ function subscribe(){
   es.onerror = function(){ setNet(false); };           // EventSource 는 알아서 다시 붙는다
 }
 subscribe();
+subscribeImg();
 if(AUTO_ROOM) save();                                 // 새 방에 지금 상태를 올려 둔다
 
 /* ── 타이머 ── */
@@ -549,10 +624,8 @@ function boardHTML(){
   return '<div class="board">'+
     sideHTML("home")+
     '<div class="center">'+
-      '<div style="display:flex;align-items:center;gap:8px">'+
-        (S.stage?'<span class="stage">'+esc(S.stage)+'</span><span style="color:#fff;opacity:.3;font-size:10px">/</span>':"")+
-        '<span class="period">'+esc(S.period)+'</span>'+
-      '</div>'+
+      (S.stage ? '<div class="stage">'+esc(S.stage)+'</div>' : "")+     // 단계는 기간 위 줄에
+      '<div class="period">'+esc(S.period)+'</div>'+
       (S.showTimer?'<div class="timer tab">'+fmt(timerShown())+'</div>':"")+
     '</div>'+
     sideHTML("away")+
@@ -624,7 +697,8 @@ function wideHTML(){
   return '<div class="wboard">'+
     side("home")+
     '<div class="wcenter">'+
-      '<div class="wmeta">'+metaHTML()+'</div>'+
+      (S.stage ? '<div class="stage">'+esc(S.stage)+'</div>' : "")+
+      '<div class="period">'+esc(S.period)+'</div>'+
       (S.showTimer ? '<div class="timer tab">'+fmt(timerShown())+'</div>' : "")+
     '</div>'+
     side("away")+
@@ -766,31 +840,52 @@ function winGame(k){
   return "";
 }
 
+/* 대회명(왼쪽 위) · 채널명(오른쪽 위) — 글자·이미지·둘 다. 이미지만이면 배경 상자 없이 로고 그대로 */
+function brandBox(id, text, img, dark){
+  if(!text && !img) return "";
+  var only = img && !text;
+  return '<div class="anchor" id="'+id+'"><div class="brand'+(only?" imgonly":"")+(img?" hasimg":"")+'"'+
+    (only ? "" : ' style="background:'+(dark?"#0f172a":"#fff")+';color:'+(dark?"#fff":"#0f172a")+'"')+'>'+
+    (img ? '<img src="'+esc(img)+'" alt="">' : "")+
+    (text ? '<span>'+esc(text)+'</span>' : "")+
+  '</div></div>';
+}
 function brandHTML(){
-  var o = "";
-  if(S.tournament) o += '<div class="anchor" id="bTour"><div class="brand" style="background:#0f172a;color:#fff">'+esc(S.tournament)+'</div></div>';
-  if(S.channel)    o += '<div class="anchor" id="bCh"><div class="brand" style="background:#fff;color:#0f172a">'+esc(S.channel)+'</div></div>';
-  return o;
+  return brandBox("bTour", S.tournament, IMG.tour, true) + brandBox("bCh", S.channel, IMG.ch, false);
 }
 
 function renderOverlay(){
   document.getElementById("app").innerHTML =
     '<div id="sbStage">'+brandHTML()+'<div class="anchor" id="bd">'+boardHTML()+'</div></div>';
+  var t = document.getElementById("bTour");
+  if(t){ t.style.top="40px"; t.style.left="40px";  t.style.transformOrigin="top left";  t.style.transform="scale("+SCALE+")"; }
+  var c = document.getElementById("bCh");
+  if(c){ c.style.top="40px"; c.style.right="40px"; c.style.transformOrigin="top right"; c.style.transform="scale("+SCALE+")"; }
   var bd = document.getElementById("bd");
-  if(layout() === "wide" && !S.over){
+  var wide = layout() === "wide" && !S.over;
+  if(wide){
     /* 와이드는 좌우 여백만 두고 폭을 꽉 채운다 — 위/아래만 pos 를 따른다.
-       scale 로 키우면 넘치므로 폭을 미리 scale 로 나눠 둔다. 대회명·채널명과 겹치지 않게 위쪽이면 조금 내린다 */
+       scale 로 키우면 넘치므로 폭을 미리 scale 로 나눠 둔다 */
     var v = POS[0]==="T" ? "top" : "bottom";
-    bd.style[v] = (v==="top" && (S.tournament||S.channel)) ? "110px" : "40px";
+    bd.style[v] = "40px";
     bd.style.left = "40px";
     bd.style.width = "calc((100vw - 80px) / "+SCALE+")";
     bd.style.transformOrigin = v+" left";
     bd.style.transform = "scale("+SCALE+")";
   }else posStyle(bd);
-  var t = document.getElementById("bTour");
-  if(t){ t.style.top="40px"; t.style.right="40px"; t.style.transformOrigin="top right"; t.style.transform="scale("+SCALE+")"; }
-  var c = document.getElementById("bCh");
-  if(c){ c.style.top="40px"; c.style.left="40px"; c.style.transformOrigin="top left"; c.style.transform="scale("+SCALE+")"; }
+  /* 점수판이 위쪽이면 같은 쪽 대회명·채널명 밑으로 내린다 (가운데·와이드는 둘 다 피한다) */
+  if(POS[0] === "T"){
+    var avoid = [];
+    if(wide || POS[1] !== "R") avoid.push(t);
+    if(wide || POS[1] !== "L") avoid.push(c);
+    var bottom = 0;
+    avoid.forEach(function(el){ if(el) bottom = Math.max(bottom, el.getBoundingClientRect().bottom); });
+    if(bottom) bd.style.top = Math.round(bottom + 14) + "px";
+  }
+  /* 로고 이미지는 늦게 뜰 수 있다 — 다 뜬 뒤에 한 번 더 자리 계산 */
+  document.querySelectorAll("#sbStage .brand img").forEach(function(im){
+    if(!im.complete) im.onload = function(){ if(VIEW === "overlay") renderOverlay(); };
+  });
 }
 
 /* ── 조작 화면 ── */
@@ -825,7 +920,7 @@ function teamHTML(k){
       ? '<div class="row">'+btns.map(function(n){
           return '<button class="plus" data-s="'+k+'|'+n+'">+'+n+'</button>';
         }).join("")+'</div>'+
-        '<div class="row gadj"><span>잘못 누름</span><button data-s="'+k+'|-1">−1</button></div>'
+        '<div class="row gadj"><span>잘못 누름</span><button class="neg" data-s="'+k+'|-1">−1</button></div>'
       : '<div class="row">'+
           '<button class="minus" data-s="'+k+'|-1">−</button>'+
           '<button class="plus" data-s="'+k+'|'+btns[0]+'">+ '+btns[0]+'점</button>'+
@@ -898,6 +993,18 @@ function sportOptionsHTML(){
   }
   return o;
 }
+/* 대회명·채널명 칸 — 글자 + 이미지 */
+function brandInputHTML(k, label, text){
+  var img = IMG[k];
+  return '<div><label class="f">'+label+'</label>'+
+    '<input class="t" id="'+k+'" value="'+esc(text)+'" maxlength="24" placeholder="글자 (비워도 됨)">'+
+    '<div class="imgrow">'+
+      (img ? '<img src="'+esc(img)+'" alt="">' : '<span class="noimg">이미지 없음</span>')+
+      '<label class="imgbtn">🖼 '+(img?"바꾸기":"이미지")+'<input type="file" accept="image/*" data-img="'+k+'" hidden></label>'+
+      (img ? '<button class="imgdel" data-imgdel="'+k+'">삭제</button>' : "")+
+    '</div>'+
+  '</div>';
+}
 /* 작은 ± 줄 — 세트 수·팀파울을 손으로 고칠 때 */
 function adjHTML(label, k, field, val){
   return '<div class="row gadj">'+
@@ -965,8 +1072,8 @@ function renderControl(){
         '<div><label class="f">현재 (예: SET 2)</label><input class="t" id="fPeriod" value="'+esc(S.period)+'" maxlength="10"></div>'+
       '</div>'+
       '<div class="grid2">'+
-        '<div><label class="f">대회명 (오른쪽 위)</label><input class="t" id="tour" value="'+esc(S.tournament)+'" maxlength="24"></div>'+
-        '<div><label class="f">채널명 (왼쪽 위)</label><input class="t" id="ch" value="'+esc(S.channel)+'" maxlength="24"></div>'+
+        brandInputHTML("tour", "대회명 (왼쪽 위)", S.tournament)+
+        brandInputHTML("ch", "채널명 (오른쪽 위)", S.channel)+
       '</div>'+
       '<label class="f">종목</label>'+
       '<select class="t" id="sport">'+
@@ -1175,6 +1282,21 @@ function bindControl(){
     $(pair[0]).oninput = function(){ S[pair[1]] = $(pair[0]).value; save(); renderOverlayPreviewOnly(); };
   });
   $("tour").oninput = function(){ S.tournament = $("tour").value; save(); };
+  document.querySelectorAll("[data-img]").forEach(function(inp){
+    inp.onchange = function(){
+      var f = inp.files && inp.files[0], k = inp.dataset.img;
+      if(!f) return;
+      toast("이미지 줄이는 중…", 1200);
+      shrinkImage(f, function(err, url){
+        if(err){ toast(err, 2600); return; }
+        IMG[k] = url; saveImg(); render();
+        toast("이미지를 넣었습니다 ("+Math.round(url.length*0.75/1024)+"KB)", 2000);
+      });
+    };
+  });
+  document.querySelectorAll("[data-imgdel]").forEach(function(b){
+    b.onclick = function(){ IMG[b.dataset.imgdel] = ""; saveImg(); render(); };
+  });
   $("ch").oninput   = function(){ S.channel    = $("ch").value;   save(); };
   $("sport").onchange = function(){
     snap(); applySport($("sport").value); save(); render();
@@ -1214,7 +1336,7 @@ function bindControl(){
   function switchRoom(code){
     ROOM = code; KEY = "sb_state_v1_" + ROOM;
     try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
-    NET = null; subscribe(); refreshUrl();
+    NET = null; subscribe(); subscribeImg(); refreshUrl();
   }
   $("mkRoom").onclick = function(){
     if(!confirm("새 코드로 바꾸면 오버레이 주소도 바뀝니다.\nOBS·카메라파이에 새 주소를 다시 넣어야 합니다. 바꿀까요?")) return;
