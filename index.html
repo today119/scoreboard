@@ -164,8 +164,9 @@
   .wside .tname{font-size:40px;max-width:none}
   .wsub{display:flex;align-items:center;gap:12px}
   .wside.away .wsub{flex-direction:row-reverse}
-  .wsub .sets{flex-direction:row;gap:6px}
-  .wsub .dot{width:13px;height:13px}
+  .wside .sets{gap:7px;margin-left:-6px}
+  .wside.away .sets{margin-left:0;margin-right:-6px}
+  .wside .dot{width:14px;height:14px}
   .wsub .fl{font-size:14px}
   .wside .serve{width:18px;height:18px}
   .wscore{font-size:76px;font-weight:900;color:var(--bd-text);line-height:1}
@@ -199,6 +200,12 @@
   .teams{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px;min-width:0}
   .grid2>*,.grid3>*{min-width:0}
+  .h2sub{font-size:11.5px;font-weight:600;color:var(--ui-sub);margin-left:6px;letter-spacing:0}
+  .posgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .posgrid button{min-height:44px;font-size:13.5px}
+  details.room{margin-top:12px;border-top:1px solid var(--ui-line);padding-top:10px}
+  details.room summary{cursor:pointer;font-size:13px;color:var(--ui-sub);font-weight:700}
+  details.room summary b{color:var(--ui-fg);font-family:ui-monospace,Menlo,monospace;letter-spacing:.08em}
   button.blink{background:#B45309;border-color:#F59E0B;color:#fff;animation:blink 1s infinite}
   @keyframes blink{50%{background:#F59E0B}}
   .chks{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:10px}
@@ -218,7 +225,7 @@
          background:var(--ui-btn);color:var(--ui-fg);font-size:15px;padding:14px;cursor:pointer;flex:1;min-height:52px}
   button:active{opacity:.7}
   button.plus{background:#1D4ED8;border-color:#3B82F6;color:#fff;font-size:22px}
-  button.minus{background:var(--ui-btn-sub);font-size:22px;max-width:74px}
+  button.minus{background:var(--ui-btn-sub);font-size:22px}
   button.on{background:#166534;border-color:#22C55E;color:#DCFCE7}
   button.warn{background:#B91C1C;border-color:#991B1B;color:#fff}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
@@ -246,7 +253,6 @@
     .teams{gap:8px}
     .team{padding:8px}
     button{padding:10px 4px;font-size:14px;min-height:48px;min-width:0}
-    .row button.minus{flex:0 0 44px}
     button.plus{font-size:17px;white-space:nowrap}
     .row{gap:6px}
     .gadj button{flex-basis:34px;min-height:32px}
@@ -264,18 +270,34 @@
 /* ─────────────────────────────────────────────────────────
    주소 옵션
      ?view=overlay|control   기본 control
-     ?pos=TL|TC|TR|BL|BC|BR  오버레이 위치 (기본 BL)
-     ?scale=1.2              오버레이 크기
-     ?room=abc               (예정) 다른 기기에서 조작
+     ?room=abc               방 코드 — 조작 화면이 자동으로 만들어 오버레이 주소에 넣는다
+     ?local=1                방 코드 없이 이 브라우저 안에서만 (테스트용)
+     아래는 오버레이 주소에 직접 적으면 조작 화면 설정 대신 그 값으로 고정된다 (오버레이를 여러 개 띄울 때)
+     ?pos=TL|TC|TR|BL|BC|BR  ?scale=1.2  ?theme=dark|light  ?layout=bar|corner|wide
    ───────────────────────────────────────────────────────── */
 var Q = new URLSearchParams(location.search);
 var VIEW  = (Q.get("view")||"control").toLowerCase();
-var POS   = (Q.get("pos")||"BL").toUpperCase();
-var SCALE = parseFloat(Q.get("scale")||"1") || 1;
-var ROOM  = Q.get("room")||"";
-if(!ROOM){ try{ ROOM = localStorage.getItem("sb_room")||""; }catch(e){} }
-var THEME = (Q.get("theme")||"dark").toLowerCase()==="light" ? "light" : "dark";
+var LOCAL = Q.get("local") === "1";
+var ROOM  = LOCAL ? "" : (Q.get("room")||"");
+if(!ROOM && !LOCAL){ try{ ROOM = localStorage.getItem("sb_room")||""; }catch(e){} }
 var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
+/* 위치·크기·색 — S 에 들어 있어 기기 간에 같이 움직인다. render() 때마다 syncView() 로 다시 읽는다 */
+var POS = "BL", SCALE = 1, THEME = "dark";
+function fixed(name){ return VIEW === "overlay" ? Q.get(name) : null; }
+function syncView(){
+  var p = (fixed("pos") || S.pos || "BL").toUpperCase();
+  POS = /^[TB][LCR]$/.test(p) ? p : "BL";
+  SCALE = parseFloat(fixed("scale") || S.scale) || 1;
+  THEME = (fixed("theme") || S.theme) === "light" ? "light" : "dark";
+}
+function mkCode(){
+  var c = "abcdefghjkmnpqrstuvwxyz23456789", o = "";
+  for(var i=0;i<6;i++) o += c[Math.floor(Math.random()*c.length)];
+  return o;
+}
+function overlayUrl(){
+  return location.origin + location.pathname + "?view=overlay" + (ROOM ? "&room="+encodeURIComponent(ROOM) : "");
+}
 
 /* ── 종목 프리셋 ────────────────────────────────────────────
    unit     기간 이름 (SET 2, GAME 3 …)          periods  이름이 정해진 기간 (전반·후반 / 1Q…)
@@ -301,11 +323,26 @@ function parseBtns(s){
   return a.length ? a : [1];
 }
 function PR(){
-  var b = PRESETS[S.sport] || PRESETS.CUSTOM;
-  if(S.sport !== "CUSTOM") return b;
-  var c = S.custom;
-  return { label:b.label, emoji:b.emoji, unit:c.unit, sets:!!c.sets, serve:c.serve?"winner":"",
-           fouls:c.fouls?5:0, btns:parseBtns(c.btns), target:+c.target||0, winBy:2 };
+  var b = PRESETS[S.sport] || PRESETS.CUSTOM, o;
+  if(S.sport === "CUSTOM"){
+    var c = S.custom;
+    o = { label:b.label, emoji:b.emoji, unit:c.unit, sets:!!c.sets, serve:c.serve?"winner":"",
+          fouls:c.fouls?5:0, btns:parseBtns(c.btns) };
+  }else o = Object.assign({}, b);
+  /* 세트 점수·듀스는 사용자가 고친 S.rules 가 우선 (학교 경기는 21점제·듀스 없음 등 제각각) */
+  if(o.sets && S.sport !== "TENNIS"){
+    var r = S.rules || {};
+    o.target = +r.target || 0;
+    o.lastTarget = +r.lastTarget || 0;
+    o.winBy = r.deuce === false ? 1 : 2;
+    o.cap = r.deuce === false ? 0 : (+r.cap || 0);
+  }
+  return o;
+}
+function presetRules(sport, custom){
+  var p = PRESETS[sport] || {};
+  if(sport === "CUSTOM") return {target:+(custom && custom.target) || 0, lastTarget:0, deuce:true, cap:0};
+  return {target:p.target||0, lastTarget:p.lastTarget||0, deuce:true, cap:p.cap||0};
 }
 
 var DEF = {
@@ -317,7 +354,8 @@ var DEF = {
   timerDir:"up", timerLen:10,                         // 내려가는 시간은 timerLen 분에서 뺀다
   tournament:"", channel:"",
   over:false, bestOf:3,
-  layout:"bar",
+  layout:"bar", pos:"BL", scale:1, theme:"dark",
+  rules:{target:25, lastTarget:15, deuce:true, cap:0},   // 세트 규칙 — 종목을 고르면 그 종목 기본값으로 채워진다
   firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
   /* 테니스: pts 는 이번 게임에서 딴 포인트 수(숫자). 0·15·30·40·AD 는 화면에서만 바꿔 그린다. */
   tn:{games:6, noAd:false, tb:false, tbServer:"home"},
@@ -334,6 +372,7 @@ function merge(v){
   d.custom = Object.assign(d.custom, v.custom||{});
   if(d.sport === "GENERAL") d.sport = "CUSTOM";       // v1 의 「일반」
   if(!PRESETS[d.sport]) d.sport = "CUSTOM";
+  d.rules = v.rules ? Object.assign(d.rules, v.rules) : presetRules(d.sport, d.custom);   // 규칙이 없던 예전 저장본
   if(!Array.isArray(d.home.hist)) d.home.hist = [];   // Firebase 는 빈 배열을 지운다
   if(!Array.isArray(d.away.hist)) d.away.hist = [];
   return d;
@@ -346,6 +385,15 @@ function load(){
   }catch(e){ return JSON.parse(JSON.stringify(DEF)); }
 }
 var S = load();
+/* 예전엔 색을 이 기기에만 기억했다 → 처음 한 번 옮겨 온다 */
+try{ var oldTheme = localStorage.getItem("sb_theme"); if(oldTheme && !localStorage.getItem(KEY)) S.theme = oldTheme; }catch(e){}
+/* 조작 화면은 방 코드를 자동으로 만든다 — OBS·카메라파이의 브라우저는 크롬과 별개라 서버를 거쳐야 점수가 간다 */
+var AUTO_ROOM = false;
+if(VIEW === "control" && !ROOM && !LOCAL){
+  ROOM = mkCode(); AUTO_ROOM = true;
+  KEY = "sb_state_v1_" + ROOM;
+  try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
+}
 
 /* ── 실시간 반영 ────────────────────────────────────────────
    ① 같은 브라우저의 창끼리  : BroadcastChannel
@@ -410,6 +458,10 @@ function subscribe(){
   var apply = function(ev){
     try{
       var m = JSON.parse(ev.data);
+      if(m && m.path === "/" && m.data == null){      // 서버에 이 방이 비어 있으면 지금 상태를 올린다
+        if(VIEW === "control") pushRemote();
+        return;
+      }
       if(!m || m.data == null) return;
       var v = (m.path === "/") ? m.data : null;
       if(!v) return;                                   // 부분 갱신은 쓰지 않는다(항상 통째로 올림)
@@ -423,6 +475,7 @@ function subscribe(){
   es.onerror = function(){ setNet(false); };           // EventSource 는 알아서 다시 붙는다
 }
 subscribe();
+if(AUTO_ROOM) save();                                 // 새 방에 지금 상태를 올려 둔다
 
 /* ── 타이머 ── */
 function timerMs(){ return S.timerAcc + (S.timerRunning ? (Date.now()-S.timerBase) : 0); }
@@ -558,9 +611,10 @@ function wideHTML(){
     var t = S[k];
     return '<div class="wside '+k+'">'+
       '<div class="wbar" style="background:'+esc(t.color)+'"></div>'+
+      (p.sets ? dots(t.sets) : "")+                   // 세트 점은 가로 바처럼 가장자리에 세로로
       '<div class="wcol">'+
         '<div class="tname">'+esc(t.name)+'</div>'+
-        ((p.sets || p.fouls) ? '<div class="wsub">'+(p.sets ? dots(t.sets) : "")+foulHTML(t)+'</div>' : "")+
+        (p.fouls ? '<div class="wsub">'+foulHTML(t)+'</div>' : "")+
       '</div>'+
       ((p.serve && t.serve) ? '<div class="serve"></div>' : "")+
       '<div class="wscore tab">'+t.score+'</div>'+
@@ -667,6 +721,7 @@ function stepPeriod(dir){
 /* 종목을 바꾸면 그 종목 기본값으로 */
 function applySport(v){
   S.sport = v;
+  S.rules = presetRules(v, S.custom);
   var p = PR();
   if(p.bestOf) S.bestOf = p.bestOf;
   S.showTimer = !!p.timer;
@@ -794,13 +849,12 @@ function sportOptionsHTML(){
     function chk(f, label){
       return '<label class="chk"><input type="checkbox" data-cu="'+f+'"'+(c[f]?" checked":"")+'> '+label+'</label>';
     }
-    o += '<div class="grid3">'+
+    o += '<div class="grid2">'+
       '<div><label class="f">기간 이름</label><input class="t" data-cu="unit" value="'+esc(c.unit)+'" maxlength="8" placeholder="SET / 이닝 / 라운드"></div>'+
       '<div><label class="f">점수 버튼</label><input class="t" data-cu="btns" value="'+esc(c.btns)+'" maxlength="12" placeholder="1 또는 1,2,3"></div>'+
-      '<div><label class="f">세트 목표점수</label><input class="t" data-cu="target" type="number" min="0" value="'+esc(c.target)+'" placeholder="0=없음"></div>'+
     '</div>'+
     '<div class="chks">'+chk("sets","세트제 (세트 점·세트 종료)")+chk("serve","서브권 표시")+chk("fouls","팀파울 (5개면 BONUS)")+'</div>'+
-    '<div class="hint">예) 피구 : 기간 이름 「라운드」, 세트제 체크 · 야구식 : 「이닝」, 버튼 「1,2,3」 · 목표점수를 넣으면 도달했을 때 「세트 종료」가 깜빡입니다.</div>';
+    '<div class="hint">예) 피구 : 기간 이름 「라운드」, 세트제 체크 · 야구식 : 「이닝」, 버튼 「1,2,3」 · 세트제를 켜면 아래에 세트 점수·듀스 설정이 나옵니다.</div>';
   }
   if(S.sport === "TENNIS"){
     o += '<div class="grid2">'+
@@ -812,11 +866,29 @@ function sportOptionsHTML(){
   if(p.sets){
     o += '<label class="f">경기 방식</label>'+
       sel("bestOf", [1,3,5,7].map(function(b){ return [b, b===1 ? "단판" : b+(p.unit==="GAME"?"게임":"세트")+" 중 "+(Math.floor(b/2)+1)+"선승"]; }), S.bestOf);
-    var t = setTarget();
-    if(t && S.sport !== "CUSTOM"){
-      o += '<div class="hint">'+p.label+' : <b>'+p.target+'점'+(p.lastTarget?' (마지막 세트 '+p.lastTarget+'점)':'')+
-        ', '+(p.winBy||2)+'점 차'+(p.cap?', '+p.cap+'점 상한':'')+'</b>. 도달하면 「세트 종료」가 깜빡입니다 — 최종 점수를 보여준 뒤 누르세요.'+
+  }
+  if(p.sets && S.sport !== "TENNIS"){
+    var r = S.rules, word = (p.unit==="GAME" ? "게임" : "세트");
+    o += '<label class="f">'+word+' 점수 <span style="font-weight:600">(0 = 정하지 않음)</span></label>'+
+      '<div class="row">'+
+        [11,15,21,25].map(function(n){
+          return '<button data-rt="'+n+'" class="'+(+r.target===n?"on":"")+'">'+n+'점</button>';
+        }).join("")+
+        '<input class="t" type="number" min="0" max="99" data-rule="target" value="'+(+r.target||0)+'" style="flex:0 0 76px;text-align:center">'+
+      '</div>'+
+      '<div class="grid3">'+
+        '<div><label class="f">마지막 '+word+'</label><input class="t" type="number" min="0" max="99" data-rule="lastTarget" value="'+(+r.lastTarget||0)+'" placeholder="0=같음"></div>'+
+        '<div><label class="f">듀스</label>'+sel("ruleDeuce", [["1","있음 (2점 차)"],["0","없음 (먼저 도달)"]], r.deuce===false?"0":"1")+'</div>'+
+        '<div><label class="f">상한 점수</label><input class="t" type="number" min="0" max="99" data-rule="cap" value="'+(+r.cap||0)+'"'+(r.deuce===false?" disabled":"")+' placeholder="0=없음"></div>'+
+      '</div>';
+    if(p.target){
+      o += '<div class="hint">지금 규칙 : <b>'+p.target+'점'+
+        (p.lastTarget ? ' (마지막 '+word+' '+p.lastTarget+'점)' : '')+
+        (p.winBy === 1 ? ', 듀스 없음 — 먼저 '+p.target+'점이면 끝' : ', 듀스 있음 — 2점 차'+(p.cap ? ', '+p.cap+'점이면 끝' : ''))+
+        '</b>. 도달하면 「'+word+' 종료」가 깜빡입니다 — 최종 점수를 보여준 뒤 누르세요.'+
         (p.serve==="tt"?'<br>서브는 <b>2점마다 자동 교대</b>(듀스부터 1점마다). 첫 서브만 맞춰 주세요.':'')+'</div>';
+    }else{
+      o += '<div class="hint">점수를 정하지 않으면 세트가 끝나는 때를 알려주지 않습니다. 「세트 종료」를 직접 누르세요.</div>';
     }
   }
   if(p.fouls && S.sport !== "CUSTOM"){
@@ -834,18 +906,18 @@ function adjHTML(label, k, field, val){
 }
 function renderControl(){
   var base = location.origin + location.pathname;
-  var ovl = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + (ROOM?"&room="+encodeURIComponent(ROOM):"");
+  var ovl = overlayUrl();
   document.getElementById("app").innerHTML =
   '<div class="wrap">'+
     '<h1>'+PR().emoji+' 라이브 스코어보드 — 조작</h1>'+
-    '<div class="sub">여기서 누르면 <b>오버레이 창이 바로 바뀝니다.</b></div>'+
+    '<div class="sub">여기서 누르면 <b>방송 화면(오버레이)이 바로 바뀝니다.</b></div>'+
 
     '<div class="card"><h2>'+PR().emoji+' '+esc(PR().label)+' · '+esc(S.period)+'</h2><div class="teams">'+teamHTML("home")+teamHTML("away")+'</div>'+
       '<div class="grid3" style="margin-top:10px">'+
         '<button id="undo"'+(UNDO.length?"":" disabled style=\"opacity:.4\"")+'>↶ 되돌리기</button>'+
         '<button id="swap">↔ 좌우</button>'+
         (PR().sets
-          ? '<button id="endset"'+(setWinner()?' class="blink"':'')+'>세트 종료</button>'
+          ? '<button id="endset"'+(setWinner()?' class="blink"':'')+'>'+(PR().unit==="GAME"?"게임":"세트")+' 종료</button>'
           : '<button data-step="1">다음 ▶</button>')+
       '</div>'+
       (PR().sets ? "" :
@@ -859,19 +931,32 @@ function renderControl(){
       '</div>'+
     '</div>'+
 
-    '<div class="card"><h2>미리보기</h2>'+
-      '<div class="prevnote">실제 송출 화면과 같습니다 (배경은 투명하게 나갑니다)</div>'+
+    '<div class="card"><h2>미리보기 · 화면 <span class="h2sub">여기서 바꾸면 방송 화면도 바로 바뀝니다</span></h2>'+
       '<div class="prev '+(THEME==="light"?"lightbg":"dark")+'">'+boardHTML()+'</div>'+
-      '<div class="prevnote" style="margin-top:10px">레이아웃 — 바꾸면 <b>방송 화면도 바로</b> 바뀝니다</div>'+
+      '<label class="f">레이아웃</label>'+
       '<div class="grid3">'+
         Object.keys(LAYOUTS).map(function(k){
           var ic = {bar:"▭ ", corner:"◰ ", wide:"▬ "}[k];
           return '<button data-layout="'+k+'" class="'+(layout()===k?"on":"")+'">'+ic+LAYOUTS[k]+'</button>';
         }).join("")+
       '</div>'+
+      '<label class="f">색</label>'+
+      '<div class="grid2">'+
+        '<button id="thDark" class="'+(THEME==="dark"?"on":"")+'">🌙 어두운 점수판</button>'+
+        '<button id="thLight" class="'+(THEME==="light"?"on":"")+'">☀️ 밝은 점수판</button>'+
+      '</div>'+
+      '<label class="f">위치'+(layout()==="wide"?' <span style="font-weight:600">(와이드는 위/아래만)</span>':'')+'</label>'+
+      '<div class="posgrid">'+
+        ["TL","TC","TR","BL","BC","BR"].map(function(p){
+          var ko={TL:"↖ 왼쪽 위",TC:"↑ 가운데 위",TR:"↗ 오른쪽 위",BL:"↙ 왼쪽 아래",BC:"↓ 가운데 아래",BR:"↘ 오른쪽 아래"}[p];
+          return '<button data-pos="'+p+'" class="'+(POS===p?"on":"")+'">'+ko+'</button>';
+        }).join("")+
+      '</div>'+
+      '<label class="f">크기 <b id="scaleLbl">'+SCALE.toFixed(2)+'배</b></label>'+
+      '<input class="t" type="range" id="scale" min="0.5" max="2" step="0.05" value="'+SCALE+'">'+
     '</div>'+
 
-    '<div class="card"><h2>경기 정보</h2>'+
+    '<div class="card"><h2>경기 설정 <span class="h2sub">경기 전에 미리 맞춰 두세요</span></h2>'+
       '<div class="grid2">'+
         '<div><label class="f">단계 (예: 준결승)</label><input class="t" id="fStage" value="'+esc(S.stage)+'" maxlength="10"></div>'+
         '<div><label class="f">현재 (예: SET 2)</label><input class="t" id="fPeriod" value="'+esc(S.period)+'" maxlength="10"></div>'+
@@ -907,44 +992,25 @@ function renderControl(){
       '</div>'+
     '</div>'+
 
-    '<div class="card"><h2>기기 연결 <span id="net" style="font-size:12px;font-weight:800;margin-left:6px">'+(ROOM?"연결 중…":"꺼짐")+'</span></h2>'+
-      '<div class="hint" style="margin-top:0">폰으로 누르고 <b>OBS 화면이 바뀌게</b> 하려면 방 코드가 있어야 합니다.<br>'+
-      '조작하는 기기와 오버레이가 <b>같은 코드</b>를 쓰면 이어집니다.</div>'+
-      '<div class="grid2" style="margin-top:10px">'+
-        '<input class="t" id="room" value="'+esc(ROOM)+'" placeholder="예: yj1" maxlength="16">'+
-        '<button id="mkRoom">🎲 코드 만들기</button>'+
-      '</div>'+
-      '<div class="grid2" style="margin-top:8px">'+
-        '<button id="applyRoom">연결</button>'+
-        '<button id="offRoom">연결 끄기</button>'+
-      '</div>'+
-    '</div>'+
-
-    '<div class="card"><h2>송출에 넣을 주소</h2>'+
+    '<div class="card"><h2>송출에 넣을 주소 <span id="net" class="h2sub" style="font-weight:800">'+(!ROOM?"이 브라우저 안에서만":NET===true?"🟢 연결됨":NET===false?"🔴 연결 끊김":"연결 중…")+'</span></h2>'+
       '<div class="urlbox" id="ovlUrl">'+esc(ovl)+'</div>'+
       '<div class="grid2" style="margin-top:8px">'+
         '<button id="copyUrl">📋 주소 복사</button>'+
         '<button id="openOvl">🖥 오버레이 창 열기</button>'+
       '</div>'+
-      '<label class="f">화면 색</label>'+
-      '<div class="grid2">'+
-        '<button id="thDark" class="'+(THEME==="dark"?"on":"")+'">🌙 어두운 점수판</button>'+
-        '<button id="thLight" class="'+(THEME==="light"?"on":"")+'">☀️ 밝은 점수판</button>'+
-      '</div>'+
-      '<label class="f">위치</label>'+
-      '<select class="t" id="pos">'+
-        ["TL","TC","TR","BL","BC","BR"].map(function(p){
-          var ko={TL:"왼쪽 위",TC:"가운데 위",TR:"오른쪽 위",BL:"왼쪽 아래",BC:"가운데 아래",BR:"오른쪽 아래"}[p];
-          return '<option value="'+p+'"'+(POS===p?" selected":"")+'>'+ko+'</option>';
-        }).join("")+
-      '</select>'+
-      '<label class="f">크기 ('+SCALE.toFixed(2)+'배)</label>'+
-      '<input class="t" type="range" id="scale" min="0.5" max="2" step="0.05" value="'+SCALE+'">'+
       '<div class="hint">'+
-        '<b>OBS</b> : 소스 추가 → 브라우저 → 위 주소 붙여넣기 → 너비 1920 높이 1080<br>'+
-        '<b>카메라파이</b> : 오버레이 → 웹 → 위 주소 붙여넣기<br>'+
-        '⚠️ OBS·폰에서 쓰시려면 <b>위에서 방 코드를 연결</b>하세요. 코드가 없으면 같은 브라우저 창끼리만 이어집니다.'+
+        '<b>이 주소를 한 번만</b> 붙여넣으면 됩니다. 점수·레이아웃·색·위치·크기는 이 화면에서 바꾸면 방송에 바로 반영됩니다.<br>'+
+        '<b>OBS</b> : 소스 추가 → 브라우저 → 주소 붙여넣기 → 너비 1920 · 높이 1080 → 「보이지 않을 때 소스 종료」 끄기<br>'+
+        '<b>카메라파이</b> : 오버레이 → 웹 → 주소 붙여넣기'+
       '</div>'+
+      '<details class="room"><summary>방 코드 <b>'+esc(ROOM||"없음")+'</b> — 폰 두 대로 조작하거나 다른 기기에서 이어 할 때만</summary>'+
+        '<div class="hint" style="margin-top:6px">방 코드는 자동으로 만들어져 주소에 들어가 있습니다. 다른 기기에서 <b>같은 코드</b>를 넣으면 같은 점수판을 함께 조작합니다.</div>'+
+        '<div class="grid2" style="margin-top:8px">'+
+          '<input class="t" id="room" value="'+esc(ROOM)+'" placeholder="코드" maxlength="16">'+
+          '<button id="applyRoom">이 코드로 연결</button>'+
+        '</div>'+
+        '<button id="mkRoom" style="margin-top:8px;width:100%">🎲 새 코드로 새 점수판 (주소도 바뀝니다)</button>'+
+      '</details>'+
     '</div>'+
   '</div>';
 
@@ -1026,6 +1092,13 @@ function bindControl(){
   };
   if($("tnGames")) $("tnGames").onchange = function(){ S.tn.games = +$("tnGames").value; save(); render(); };
   if($("tnAd"))    $("tnAd").onchange    = function(){ S.tn.noAd = $("tnAd").value === "noad"; save(); render(); };
+  document.querySelectorAll("[data-rt]").forEach(function(btn){
+    btn.onclick = function(){ S.rules.target = +btn.dataset.rt; save(); render(); };
+  });
+  document.querySelectorAll("[data-rule]").forEach(function(inp){
+    inp.onchange = function(){ S.rules[inp.dataset.rule] = Math.max(0, parseInt(inp.value,10)||0); save(); render(); };
+  });
+  if($("ruleDeuce")) $("ruleDeuce").onchange = function(){ S.rules.deuce = $("ruleDeuce").value === "1"; save(); render(); };
   if($("bestOf"))  $("bestOf").onchange  = function(){ S.bestOf = +$("bestOf").value; save(); render(); };
   document.querySelectorAll("[data-n]").forEach(function(i){
     i.oninput = function(){ S[i.dataset.n].name = i.value; save(); renderOverlayPreviewOnly(); };
@@ -1101,31 +1174,37 @@ function bindControl(){
     save(); render(); toast("초기화했습니다 (종목 설정은 그대로)");
   };
 
+  function switchRoom(code){
+    ROOM = code; KEY = "sb_state_v1_" + ROOM;
+    try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
+    NET = null; subscribe(); refreshUrl();
+  }
   $("mkRoom").onclick = function(){
-    $("room").value = Math.random().toString(36).slice(2,6);
+    if(!confirm("새 코드로 바꾸면 오버레이 주소도 바뀝니다.\nOBS·카메라파이에 새 주소를 다시 넣어야 합니다. 바꿀까요?")) return;
+    switchRoom(mkCode()); save(); render();
+    toast("새 코드 「"+ROOM+"」\n주소를 다시 복사해 넣으세요", 3200);
   };
   $("applyRoom").onclick = function(){
     var v = ($("room").value||"").trim().replace(/[^A-Za-z0-9_-]/g,"");
     if(!v){ toast("코드를 넣어 주세요", 2000); return; }
-    ROOM = v; KEY = "sb_state_v1_" + ROOM;
-    try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
-    subscribe(); pushRemote(); refreshUrl(); render();
-    toast("「"+ROOM+"」 방에 연결했습니다\n오버레이 주소도 바뀌었습니다", 3200);
-  };
-  $("offRoom").onclick = function(){
-    ROOM = ""; KEY = "sb_state_v1";
-    try{ localStorage.removeItem("sb_room"); }catch(e){}
-    try{ if(es) es.close(); }catch(e){}
-    NET = null; refreshUrl(); render();
-    toast("연결을 껐습니다", 2000);
+    if(v === ROOM){ toast("이미 이 코드입니다", 1600); return; }
+    switchRoom(v); render();                         // 올리지 않는다 — 그 방의 점수판을 받아 온다
+    toast("「"+ROOM+"」 점수판에 연결했습니다", 2600);
   };
   document.querySelectorAll("[data-layout]").forEach(function(b){
     b.onclick = function(){ S.layout = b.dataset.layout; save(); render(); };
   });
-  $("thDark").onclick  = function(){ THEME="dark";  saveTheme(); refreshUrl(); render(); };
-  $("thLight").onclick = function(){ THEME="light"; saveTheme(); refreshUrl(); render(); };
-  $("pos").onchange  = function(){ POS = $("pos").value; refreshUrl(); render(); };
-  $("scale").oninput = function(){ SCALE = parseFloat($("scale").value)||1; refreshUrl(); render(); };
+  $("thDark").onclick  = function(){ S.theme = "dark";  save(); render(); };
+  $("thLight").onclick = function(){ S.theme = "light"; save(); render(); };
+  document.querySelectorAll("[data-pos]").forEach(function(b){
+    b.onclick = function(){ S.pos = b.dataset.pos; save(); render(); };
+  });
+  $("scale").oninput = function(){                    // 끄는 동안엔 화면을 통째로 다시 그리지 않는다(슬라이더가 끊김)
+    S.scale = parseFloat($("scale").value) || 1; SCALE = S.scale;
+    $("scaleLbl").textContent = SCALE.toFixed(2) + "배";
+    save();
+  };
+  $("scale").onchange = function(){ render(); };
   $("copyUrl").onclick = function(){
     var t = $("ovlUrl").textContent;
     if(navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ toast("복사했습니다"); })
@@ -1137,21 +1216,14 @@ function bindControl(){
   };
 }
 function refreshUrl(){
-  var base = location.origin + location.pathname;
-  var r = ROOM ? "&room="+encodeURIComponent(ROOM) : "";
-  var u = base + "?view=overlay&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + r;
-  var el = document.getElementById("ovlUrl"); if(el) el.textContent = u;
-  history.replaceState(null, "", base + "?view=control&pos=" + POS + "&scale=" + SCALE + "&theme=" + THEME + r);
+  var el = document.getElementById("ovlUrl"); if(el) el.textContent = overlayUrl();
+  history.replaceState(null, "", location.pathname + "?view=control" + (ROOM ? "&room="+encodeURIComponent(ROOM) : "") + (LOCAL ? "&local=1" : ""));
 }
 /* 이름·단계만 바뀔 때는 입력 포커스를 잃지 않게 미리보기만 다시 그린다 */
 function renderOverlayPreviewOnly(){
   var p = document.querySelector(".prev");
   if(p) p.innerHTML = boardHTML();
 }
-
-function saveTheme(){ try{ localStorage.setItem("sb_theme", THEME); }catch(e){} }
-/* 조작 화면에서 고른 색을 다음에도 기억한다 (주소로 직접 지정한 건 그게 우선) */
-if(!Q.get("theme")){ try{ var t=localStorage.getItem("sb_theme"); if(t==="light"||t==="dark") THEME=t; }catch(e){} }
 
 var toastTimer = null;
 function toast(msg, ms){
@@ -1162,11 +1234,13 @@ function toast(msg, ms){
 }
 
 function render(){
+  syncView();
   var th = (THEME==="light" ? " light" : "");
   if(VIEW === "overlay"){ document.body.className = th.trim(); renderOverlay(); }
   else { document.body.className = "control" + th; renderControl(); }
 }
 render();
+if(VIEW === "control") refreshUrl();
 
 /* 시간 표시가 켜져 있으면 1초마다 갱신 */
 setInterval(function(){
