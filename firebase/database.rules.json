@@ -1,0 +1,31 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "scoreboard": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/) && (!newData.exists() || (newData.hasChildren(['home', 'away']) && newData.child('sport').isString()))"
+      }
+    },
+    "scoreboard_img": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)",
+        "tour": { ".validate": "newData.isString() && newData.val().length < 600000" },
+        "ch":   { ".validate": "newData.isString() && newData.val().length < 600000" },
+        "$other": { ".validate": false }
+      }
+    },
+    "scoreboard_preset": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)"
+      }
+    }
+  }
+}

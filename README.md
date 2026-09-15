@@ -23,3 +23,8 @@ HTML 한 파일이라 설치·빌드가 없다.
 
 디자인 출처: AI Studio 「LiveStream Overlay Pro」의 `components/OverlayView.tsx`.
 영상편집·통계차트·AI 중계멘트·motion 은 중계에 불필요해 걷어냈다.
+
+서버 (Firebase 프로젝트 「Scoreboard Live」, ID `matchmaker-28187` — ID 는 바꿀 수 없어 옛 이름 그대로)
+- RTDB `scoreboard/<방>` 점수판 상태 · `scoreboard_img/<방>` 로고 · `scoreboard_preset/<방>` 프리셋
+- 보안 규칙은 `firebase/database.rules.json` — 방 코드별로만 읽기·쓰기, 방 목록 훑기·그 밖의 경로는 잠금
+- 규칙 배포: `cd firebase && firebase deploy --only database`
