@@ -10,6 +10,7 @@
      dark = 기본. light 는 body.light 로 갈아끼운다.
      오버레이(점수판)와 조작 화면이 같은 변수를 쓴다. */
   :root{
+    --blur:14px; --num-shadow:none;                 /* 투명도에 따라 JS(applyOpacity)가 바꾼다 */
     /* 점수판 */
     --bd-bg:rgba(2,6,23,.95);      --bd-line:rgba(255,255,255,.10);
     --bd-text:#fff;                --bd-shadow:0 40px 80px rgba(0,0,0,.5);
@@ -66,17 +67,19 @@
             background:linear-gradient(160deg,#35533a,#27402d 55%,#1c2e21)}
   #stageInner{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
   #stageInner .anchor{position:absolute}
-  .eltabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .eltabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}
+  .eltabs button{font-size:13.5px;padding:10px 2px}
   .nudge{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
   .nudge button{min-height:44px;font-size:18px;padding:0}
   .anchor{position:fixed}   /* transition 금지 — 겹침 계산이 옮겨지는 도중 값을 읽게 된다 */
   .board{
-    display:flex;align-items:stretch;min-height:90px;
-    background:var(--bd-bg);backdrop-filter:blur(14px);
+    /* 1fr auto 1fr — 폭은 내용(팀 이름)만큼, 두 팀 칸은 긴 쪽에 맞춰 같은 폭 */
+    display:inline-grid;grid-template-columns:1fr auto 1fr;align-items:stretch;min-height:90px;
+    background:var(--bd-bg);backdrop-filter:blur(var(--blur));
     border:1px solid var(--bd-line);border-radius:18px;overflow:hidden;
     box-shadow:var(--bd-shadow);
   }
-  .side{display:flex;align-items:center;gap:16px;padding:12px 24px;min-width:190px}
+  .side{display:flex;align-items:center;gap:16px;padding:12px 22px}
   .side.away{text-align:right}
   .bar{width:10px;height:40px;border-radius:99px;flex:none}
   .sets{display:flex;flex-direction:column;gap:4px}
@@ -87,7 +90,7 @@
   .tname{font-size:26px;font-weight:900;color:var(--bd-text);text-transform:uppercase;line-height:1;
          letter-spacing:-.02em;text-shadow:var(--bd-name-shadow);white-space:nowrap;max-width:230px;
          overflow:hidden;text-overflow:ellipsis}
-  .score{font-size:42px;font-weight:900;color:var(--bd-text);line-height:1}
+  .score{font-size:42px;font-weight:900;color:var(--bd-text);line-height:1;text-shadow:var(--num-shadow)}
   .side.home .score{margin-left:auto}
   .side.away .score{margin-right:auto}
   .serve{width:13px;height:13px;border-radius:99px;background:var(--bd-accent);
@@ -95,7 +98,7 @@
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
   .center{background:var(--bd-center);padding:0 30px;border-left:1px solid var(--bd-center-line);
           border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;
-          justify-content:center;align-items:center;min-width:150px;gap:2px}
+          justify-content:center;align-items:center;min-width:120px;gap:2px}
   .stage{font-size:11px;font-weight:900;color:var(--bd-stage);text-transform:uppercase;letter-spacing:.18em;line-height:1.2}
   .center .stage{margin-bottom:3px}
   .period{font-size:17px;font-weight:900;color:var(--bd-period);letter-spacing:.2em;line-height:1}
@@ -107,13 +110,19 @@
   .brand{padding:8px 20px;border-radius:12px;font-weight:900;font-style:italic;text-transform:uppercase;
          letter-spacing:.15em;border:1px solid rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.4);
          display:flex;align-items:center;gap:12px;white-space:nowrap}
+  .notice{background:rgba(15,23,42,.92);color:#fff;font-size:30px;font-weight:800;padding:14px 34px;border-radius:14px;
+          border:1px solid rgba(255,255,255,.12);box-shadow:0 14px 40px rgba(0,0,0,.45);white-space:nowrap;letter-spacing:.02em}
+  body.light .notice{background:rgba(255,255,255,.95);color:#0F172A;border-color:rgba(0,0,0,.08)}
+  .notice.ticker{width:1400px;overflow:hidden;padding:14px 0}
+  .notice.ticker span{display:inline-block;padding-left:100%;animation:tick linear infinite}
+  @keyframes tick{from{transform:translateX(0)}to{transform:translateX(-100%)}}
   .brand.hasimg{padding:6px 16px 6px 8px}
   .brand img{height:44px;max-width:220px;object-fit:contain;display:block}
   .brand.imgonly{padding:0;background:none;border:0;box-shadow:none}
   .brand.imgonly img{height:64px;max-width:280px;filter:drop-shadow(0 6px 16px rgba(0,0,0,.35))}
 
   /* 테니스 — 머리띠 + 선수 2줄 (지난 세트 | 게임 | 포인트) */
-  .tboard{display:flex;flex-direction:column;min-width:440px;background:var(--bd-bg);backdrop-filter:blur(14px);
+  .tboard{display:inline-flex;flex-direction:column;min-width:300px;background:var(--bd-bg);backdrop-filter:blur(var(--blur));
           border:1px solid var(--bd-line);border-radius:18px;overflow:hidden;box-shadow:var(--bd-shadow)}
   .thead{background:var(--tn-head);padding:6px 20px;display:flex;justify-content:space-between;align-items:center;
          gap:16px;color:#fff;font-weight:900;font-style:italic;text-transform:uppercase;font-size:18px;line-height:1.2}
@@ -148,7 +157,7 @@
   .msep{color:var(--bd-text);opacity:.3;font-size:10px;margin:0 6px}
 
   /* 코너 미니 — 구석용 2줄 */
-  .cboard{display:inline-flex;flex-direction:column;min-width:290px;background:var(--bd-bg);backdrop-filter:blur(14px);
+  .cboard{display:inline-flex;flex-direction:column;min-width:200px;background:var(--bd-bg);backdrop-filter:blur(var(--blur));
           border:1px solid var(--bd-line);border-radius:14px;overflow:hidden;box-shadow:var(--bd-shadow)}
   .chead{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:6px 12px 5px;background:var(--bd-center)}
   .chead .period{font-size:12px;letter-spacing:.14em}
@@ -159,7 +168,7 @@
   .crow .cn{flex:1;display:flex;align-items:center;gap:8px;padding:0 12px;min-width:0}
   .crow .tname{font-size:18px;max-width:170px}
   .crow .serve{width:10px;height:10px}
-  .cx{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .cx{margin-left:auto;padding-left:10px;display:flex;align-items:center;gap:8px}
   .cx .sets{flex-direction:row;gap:3px}
   .cx .dot{width:8px;height:8px}
   .cx .fl{font-size:10px;letter-spacing:.08em}
@@ -167,7 +176,7 @@
           background:var(--tn-pt);color:var(--tn-pt-fg);font-size:27px;font-weight:900}
 
   /* 와이드 — 화면 폭 전체 띠 */
-  .wboard{display:flex;align-items:stretch;height:112px;width:100%;background:var(--bd-bg);backdrop-filter:blur(14px);
+  .wboard{display:flex;align-items:stretch;height:112px;width:100%;background:var(--bd-bg);backdrop-filter:blur(var(--blur));
           border:1px solid var(--bd-line);border-radius:20px;overflow:hidden;box-shadow:var(--bd-shadow)}
   .wside{flex:1;display:flex;align-items:center;gap:22px;padding-right:36px;min-width:0}
   .wside.away{flex-direction:row-reverse;padding-right:0;padding-left:36px}
@@ -182,7 +191,7 @@
   .wside .dot{width:14px;height:14px}
   .wsub .fl{font-size:14px}
   .wside .serve{width:18px;height:18px}
-  .wscore{font-size:76px;font-weight:900;color:var(--bd-text);line-height:1}
+  .wscore{font-size:76px;font-weight:900;color:var(--bd-text);line-height:1;text-shadow:var(--num-shadow)}
   .wcenter{flex:none;min-width:230px;padding:0 26px;background:var(--bd-center);border-left:1px solid var(--bd-center-line);
            border-right:1px solid var(--bd-center-line);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px}
   .wcenter .wmeta{display:flex;align-items:center}
@@ -191,7 +200,7 @@
   .wcenter .timer{font-size:38px}
 
   /* 경기 종료 요약 */
-  .summary{background:var(--sum-bg);backdrop-filter:blur(20px);border-radius:18px;padding:18px 20px;
+  .summary{display:inline-block;background:var(--sum-bg);backdrop-filter:blur(var(--blur));border-radius:18px;padding:18px 20px;
            border:1px solid var(--bd-line);box-shadow:var(--bd-shadow);min-width:360px}
   .summary .hd{font-size:10px;font-weight:900;color:var(--sum-hd);text-transform:uppercase;
                letter-spacing:.2em;font-style:italic}
@@ -214,6 +223,13 @@
   .team{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:14px;padding:12px;min-width:0}
   .grid2>*,.grid3>*{min-width:0}
   .h2sub{font-size:11.5px;font-weight:600;color:var(--ui-sub);margin-left:6px;letter-spacing:0}
+  .live{font-size:12px;color:#EF4444;font-weight:900;margin-left:6px;animation:pulse 1.4s infinite}
+  .chipsN{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .chipN{display:inline-flex;border:1px solid var(--ui-input-line);border-radius:999px;overflow:hidden;background:var(--ui-btn)}
+  .chipN button{flex:none;min-height:38px;border:0;border-radius:0;background:none;font-size:13.5px;padding:8px 12px}
+  .chipN button+button{padding:8px 10px;color:var(--ui-sub);border-left:1px solid var(--ui-input-line)}
+  .chipN.on{background:#166534;border-color:#22C55E}
+  .chipN.on button{color:#fff}
   .posgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .posgrid button{min-height:44px;font-size:13.5px}
   details.room{margin-top:12px;border-top:1px solid var(--ui-line);padding-top:10px}
@@ -375,9 +391,11 @@ var DEF = {
   timerDir:"up", timerLen:10,                         // 내려가는 시간은 timerLen 분에서 뺀다
   tournament:"", channel:"",
   over:false, bestOf:3,
-  layout:"bar", theme:"dark",
+  layout:"bar", theme:"dark", opacity:1,
+  notice:{on:false, text:"", mode:"bar", since:0},    // 안내 멘트 — mode: bar(고정 띠) | ticker(흐르는 자막)
+  notices:["잠시 후 경기가 시작됩니다","작전 타임","세트 사이 휴식 중입니다","경기가 종료되었습니다. 감사합니다"],
   /* 배치 — 점수판·대회명·채널명을 따로. x·y 는 1920×1080 기준 px (화면 크기에 비례해 줄고 늘어난다) */
-  el:{ board:{pos:"BL", scale:1, x:0, y:0}, tour:{pos:"TL", scale:1, x:0, y:0}, ch:{pos:"TR", scale:1, x:0, y:0} },
+  el:{ board:{pos:"BL", scale:1, x:0, y:0}, tour:{pos:"TL", scale:1, x:0, y:0}, ch:{pos:"TR", scale:1, x:0, y:0}, notice:{pos:"BC", scale:1, x:0, y:0} },
   autoSet:false,                                      // 세트 자동 넘김 — 최종 점수를 AUTO_SET_MS 보여준 뒤
   rules:{target:25, lastTarget:15, deuce:true, cap:0},   // 세트 규칙 — 종목을 고르면 그 종목 기본값으로 채워진다
   firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
@@ -394,7 +412,9 @@ function merge(v){
   d.away = Object.assign(d.away, v.away||{});
   d.tn   = Object.assign(d.tn,   v.tn||{});
   d.custom = Object.assign(d.custom, v.custom||{});
-  ["board","tour","ch"].forEach(function(k){ d.el[k] = Object.assign(d.el[k], (v.el||{})[k]||{}); });
+  ["board","tour","ch","notice"].forEach(function(k){ d.el[k] = Object.assign(d.el[k], (v.el||{})[k]||{}); });
+  d.notice = Object.assign(d.notice, v.notice||{});
+  if(!Array.isArray(d.notices)) d.notices = [];      // Firebase 는 빈 배열을 지운다
   if(!v.el && v.pos)   d.el.board.pos = v.pos;         // 배치가 따로 없던 예전 저장본
   if(!v.el && v.scale) d.el.board.scale = v.scale;
   if(d.sport === "GENERAL") d.sport = "CUSTOM";       // v1 의 「일반」
@@ -595,6 +615,8 @@ function placeAll(root, W, H, zoom){
   var t = root.querySelector('[data-el="tour"]'), c = root.querySelector('[data-el="ch"]'), bd = root.querySelector('[data-el="board"]');
   if(t) place(t, S.el.tour, k);
   if(c) place(c, S.el.ch, k);
+  var nt = root.querySelector('[data-el="notice"]');
+  if(nt) place(nt, S.el.notice, k);
   if(!bd) return;
   var b = {pos:POS, scale:SCALE, x:S.el.board.x, y:S.el.board.y};
   if(layout() === "wide" && !S.over){
@@ -608,7 +630,7 @@ function placeAll(root, W, H, zoom){
   }else place(bd, b, k);
   /* 점수판을 손으로 옮기지 않았으면, 대회명·채널명과 겹칠 때 비켜 준다 (위쪽이면 아래로, 아래쪽이면 위로) */
   if(+b.x || +b.y) return;
-  [t, c].forEach(function(el){
+  [t, c, nt].forEach(function(el){
     if(!el) return;
     var r1 = el.getBoundingClientRect(), r2 = bd.getBoundingClientRect(), gap = 14*k*zoom;
     var overlap = r1.left < r2.right && r2.left < r1.right && r1.top < r2.bottom && r2.top < r1.bottom;
@@ -897,8 +919,19 @@ function brandHTML(){
   return brandBox("tour", S.tournament, IMG.tour, true) + brandBox("ch", S.channel, IMG.ch, false);
 }
 
+/* 안내 멘트 — 흐르는 자막은 다시 그려도 끊겨 보이지 않게 켠 시각(since)으로 애니메이션 위치를 이어 준다 */
+function noticeHTML(){
+  var n = S.notice;
+  if(!n.on || !n.text) return "";
+  if(n.mode === "ticker"){
+    var dur = Math.max(12, n.text.length * 0.45);
+    var delay = n.since ? -(((Date.now() - n.since) / 1000) % dur) : 0;
+    return '<div class="anchor" data-el="notice"><div class="notice ticker"><span style="animation-duration:'+dur+'s;animation-delay:'+delay.toFixed(2)+'s">'+esc(n.text)+'</span></div></div>';
+  }
+  return '<div class="anchor" data-el="notice"><div class="notice">'+esc(n.text)+'</div></div>';
+}
 function stageInner(){
-  return brandHTML() + '<div class="anchor" data-el="board">'+boardHTML()+'</div>';
+  return brandHTML() + noticeHTML() + '<div class="anchor" data-el="board">'+boardHTML()+'</div>';
 }
 function renderOverlay(){
   document.getElementById("app").innerHTML = '<div id="sbStage">'+stageInner()+'</div>';
@@ -1027,13 +1060,34 @@ function sportOptionsHTML(){
   }
   return o;
 }
+/* 안내 멘트 칸 */
+function noticeCardHTML(){
+  var n = S.notice;
+  return '<div class="card"><h2>📢 안내 멘트 '+(n.on && n.text ? '<span class="live">● 방송 중</span>' : '<span class="h2sub">꺼짐</span>')+'</h2>'+
+    '<div class="row">'+
+      '<input class="t" id="nText" value="'+esc(n.text)+'" maxlength="80" placeholder="예: 09:00에 대회를 시작합니다" style="flex:1">'+
+      '<button id="nToggle" class="'+(n.on?"warn":"on")+'" style="flex:0 0 96px">'+(n.on?"끄기":"켜기")+'</button>'+
+    '</div>'+
+    '<div class="grid3" style="margin-top:8px">'+
+      '<button data-nmode="bar" class="'+(n.mode!=="ticker"?"on":"")+'">▬ 고정 띠</button>'+
+      '<button data-nmode="ticker" class="'+(n.mode==="ticker"?"on":"")+'">⇠ 흐르는 자막</button>'+
+      '<button id="nSave">＋ 문구 저장</button>'+
+    '</div>'+
+    (S.notices.length ? '<div class="chipsN">'+S.notices.map(function(t, i){
+      return '<span class="chipN'+(n.on && n.text===t?" on":"")+'"><button data-nuse="'+i+'">'+esc(t)+'</button><button data-ndel="'+i+'" title="삭제">×</button></span>';
+    }).join("")+'</div>' : "")+
+    '<div class="hint">저장한 문구를 누르면 <b>바로 방송에 뜹니다</b>. 한 번 더 누르거나 「끄기」로 내립니다. 자리·크기는 아래 배치에서 「📢 안내」.</div>'+
+  '</div>';
+}
 /* 배치 조절 — 고른 것 하나(점수판·대회명·채널명)의 위치·크기·미세 이동 */
 var EDIT_EL = "board";                                // 이 기기에서만 기억 (동기화 안 함)
 function elControlsHTML(){
   var e = S.el[EDIT_EL], isBoard = EDIT_EL === "board";
   var cur = isBoard ? POS : e.pos, sc = isBoard ? SCALE : (+e.scale||1);
-  var empty = (EDIT_EL === "tour" && !S.tournament && !IMG.tour) || (EDIT_EL === "ch" && !S.channel && !IMG.ch);
-  return (empty ? '<div class="hint">아래 「경기 설정」에서 '+(EDIT_EL==="tour"?"대회명":"채널명")+' 글자나 이미지를 넣으면 화면에 나타납니다.</div>' : "")+
+  var empty = (EDIT_EL === "tour" && !S.tournament && !IMG.tour) || (EDIT_EL === "ch" && !S.channel && !IMG.ch) ||
+              (EDIT_EL === "notice" && !(S.notice.on && S.notice.text));
+  var where = {tour:"아래 「경기 설정」에서 대회명 글자나 이미지를", ch:"아래 「경기 설정」에서 채널명 글자나 이미지를", notice:"위 「📢 안내 멘트」를"}[EDIT_EL];
+  return (empty ? '<div class="hint">'+where+' 켜면 화면에 나타납니다.</div>' : "")+
     '<label class="f">위치'+(isBoard && layout()==="wide"?' <span style="font-weight:600">(와이드는 위/아래만)</span>':'')+'</label>'+
     '<div class="posgrid">'+
       ["TL","TC","TR","BL","BC","BR"].map(function(p){
@@ -1098,6 +1152,8 @@ function renderControl(){
       '</div>'+
     '</div>'+
 
+    noticeCardHTML()+
+
     '<div class="card"><h2>미리보기 · 화면 <span class="h2sub">여기서 바꾸면 방송 화면도 바로 바뀝니다</span></h2>'+
       '<div class="prev '+(THEME==="light"?"lightbg":"dark")+'">'+boardHTML()+'</div>'+
       '<label class="f">레이아웃</label>'+
@@ -1112,10 +1168,12 @@ function renderControl(){
         '<button id="thDark" class="'+(THEME==="dark"?"on":"")+'">🌙 어두운 점수판</button>'+
         '<button id="thLight" class="'+(THEME==="light"?"on":"")+'">☀️ 밝은 점수판</button>'+
       '</div>'+
+      '<label class="f">배경 진하기 <b id="opLbl">'+Math.round((+S.opacity||1)*100)+'%</b> <span style="font-weight:600">— 낮출수록 뒤 경기가 비쳐 보입니다</span></label>'+
+      '<input class="t" type="range" id="opacity" min="0.2" max="1" step="0.05" value="'+(+S.opacity||1)+'">'+
       '<label class="f">방송 화면 배치 <span style="font-weight:600">— 16:9 화면에 실제 자리대로</span></label>'+
       '<div id="stageBox"><div id="stageInner">'+stageInner()+'</div></div>'+
       '<div class="eltabs">'+
-        [["board","📊 점수판"],["tour","🏆 대회명"],["ch","📺 채널명"]].map(function(x){
+        [["board","📊 점수판"],["tour","🏆 대회명"],["ch","📺 채널명"],["notice","📢 안내"]].map(function(x){
           return '<button data-edit-el="'+x[0]+'" class="'+(EDIT_EL===x[0]?"on":"")+'">'+x[1]+'</button>';
         }).join("")+
       '</div>'+
@@ -1412,6 +1470,44 @@ function bindControl(){
   });
   $("thDark").onclick  = function(){ S.theme = "dark";  save(); render(); };
   $("thLight").onclick = function(){ S.theme = "light"; save(); render(); };
+  function noticeOn(text){
+    S.notice.text = text; S.notice.on = true; S.notice.since = Date.now();
+    save(); render();
+  }
+  $("nText").oninput = function(){                    // 다시 그리지 않는다 — 옆 「켜기」를 누르는 순간 버튼이 바뀌어 클릭이 사라지므로
+    S.notice.text = $("nText").value.trim();
+    save(); renderOverlayPreviewOnly();
+  };
+  $("nToggle").onclick = function(){
+    var t = $("nText").value.trim();
+    if(S.notice.on){ S.notice.on = false; save(); render(); return; }
+    if(!t){ toast("문구를 먼저 적어 주세요", 1800); return; }
+    noticeOn(t);
+  };
+  $("nSave").onclick = function(){
+    var t = $("nText").value.trim();
+    if(!t){ toast("저장할 문구를 적어 주세요", 1800); return; }
+    if(S.notices.indexOf(t) < 0) S.notices.push(t);
+    save(); render(); toast("문구를 저장했습니다", 1400);
+  };
+  document.querySelectorAll("[data-nmode]").forEach(function(b){
+    b.onclick = function(){ S.notice.mode = b.dataset.nmode; S.notice.since = Date.now(); save(); render(); };
+  });
+  document.querySelectorAll("[data-nuse]").forEach(function(b){
+    b.onclick = function(){
+      var t = S.notices[+b.dataset.nuse];
+      if(S.notice.on && S.notice.text === t){ S.notice.on = false; save(); render(); return; }
+      noticeOn(t);
+    };
+  });
+  document.querySelectorAll("[data-ndel]").forEach(function(b){
+    b.onclick = function(){ S.notices.splice(+b.dataset.ndel, 1); save(); render(); };
+  });
+  $("opacity").oninput = function(){
+    S.opacity = parseFloat($("opacity").value) || 1;
+    $("opLbl").textContent = Math.round(S.opacity*100) + "%";
+    applyOpacity(); save();
+  };
   document.querySelectorAll("[data-edit-el]").forEach(function(b){
     b.onclick = function(){ EDIT_EL = b.dataset.editEl; render(); };
   });
@@ -1463,11 +1559,25 @@ function toast(msg, ms){
   toastTimer = setTimeout(function(){ el.className = "toast"; }, ms||1800);
 }
 
+/* 배경 투명도 — 점수판 바탕색만 옅게 (글자·점수 칸은 그대로). 테마별 기본 알파에 곱한다.
+   color-mix 는 OBS 의 옛 크롬(CEF)에서 안 돼서 rgba 를 직접 만든다 */
+var BG_ALPHA = {
+  dark:  {"--bd-bg":[2,6,23,.95], "--bd-center":[0,0,0,.6],     "--sum-bg":[0,20,41,.95],   "--tn-hist":[0,0,0,.4]},
+  light: {"--bd-bg":[255,255,255,.95], "--bd-center":[15,23,42,.06], "--sum-bg":[255,255,255,.96], "--tn-hist":[15,23,42,.05]}
+};
+function applyOpacity(){
+  var op = Math.max(0.1, Math.min(1, +S.opacity || 1)), t = BG_ALPHA[THEME], st = document.body.style;
+  for(var k in t){ var c = t[k]; st.setProperty(k, "rgba("+c[0]+","+c[1]+","+c[2]+","+(c[3]*op).toFixed(3)+")"); }
+  st.setProperty("--blur", (14*op).toFixed(1)+"px");        // 옅게 할수록 흐림도 줄여 경기가 보이게
+  st.setProperty("--num-shadow", op < .75 ? (THEME==="light" ? "0 1px 8px rgba(255,255,255,.9)" : "0 2px 10px rgba(0,0,0,.75)") : "none");
+}
+
 function render(){
   syncView();
   var th = (THEME==="light" ? " light" : "");
-  if(VIEW === "overlay"){ document.body.className = th.trim(); renderOverlay(); }
-  else { document.body.className = "control" + th; renderControl(); }
+  document.body.className = (VIEW === "overlay" ? "" : "control") + th;
+  applyOpacity();
+  if(VIEW === "overlay") renderOverlay(); else renderControl();
 }
 render();
 if(VIEW === "control") refreshUrl();
