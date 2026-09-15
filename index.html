@@ -355,6 +355,7 @@ var DEF = {
   tournament:"", channel:"",
   over:false, bestOf:3,
   layout:"bar", pos:"BL", scale:1, theme:"dark",
+  autoSet:false,                                      // 세트 자동 넘김 — 최종 점수를 AUTO_SET_MS 보여준 뒤
   rules:{target:25, lastTarget:15, deuce:true, cap:0},   // 세트 규칙 — 종목을 고르면 그 종목 기본값으로 채워진다
   firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
   /* 테니스: pts 는 이번 게임에서 딴 포인트 수(숫자). 0·15·30·40·AD 는 화면에서만 바꿔 그린다. */
@@ -880,12 +881,13 @@ function sportOptionsHTML(){
         '<div><label class="f">마지막 '+word+'</label><input class="t" type="number" min="0" max="99" data-rule="lastTarget" value="'+(+r.lastTarget||0)+'" placeholder="0=같음"></div>'+
         '<div><label class="f">듀스</label>'+sel("ruleDeuce", [["1","있음 (2점 차)"],["0","없음 (먼저 도달)"]], r.deuce===false?"0":"1")+'</div>'+
         '<div><label class="f">상한 점수</label><input class="t" type="number" min="0" max="99" data-rule="cap" value="'+(+r.cap||0)+'"'+(r.deuce===false?" disabled":"")+' placeholder="0=없음"></div>'+
-      '</div>';
+      '</div>'+
+      '<div class="chks"><label class="chk"><input type="checkbox" id="autoSet"'+(S.autoSet?" checked":"")+'> '+word+' 자동 넘김 — 최종 점수를 '+(AUTO_SET_MS/1000)+'초 보여준 뒤 다음 '+word+'로</label></div>';
     if(p.target){
       o += '<div class="hint">지금 규칙 : <b>'+p.target+'점'+
         (p.lastTarget ? ' (마지막 '+word+' '+p.lastTarget+'점)' : '')+
         (p.winBy === 1 ? ', 듀스 없음 — 먼저 '+p.target+'점이면 끝' : ', 듀스 있음 — 2점 차'+(p.cap ? ', '+p.cap+'점이면 끝' : ''))+
-        '</b>. 도달하면 「'+word+' 종료」가 깜빡입니다 — 최종 점수를 보여준 뒤 누르세요.'+
+        '</b>. '+(S.autoSet ? '도달하면 '+(AUTO_SET_MS/1000)+'초 뒤 자동으로 넘어갑니다 (마지막 '+word+'는 직접 「경기 종료」).' : '도달하면 「'+word+' 종료」가 깜빡입니다 — 최종 점수를 보여준 뒤 누르세요.')+
         (p.serve==="tt"?'<br>서브는 <b>2점마다 자동 교대</b>(듀스부터 1점마다). 첫 서브만 맞춰 주세요.':'')+'</div>';
     }else{
       o += '<div class="hint">점수를 정하지 않으면 세트가 끝나는 때를 알려주지 않습니다. 「세트 종료」를 직접 누르세요.</div>';
@@ -925,9 +927,10 @@ function renderControl(){
         '<button data-step="-1" style="flex:0 0 30%">◀ 이전</button>'+
         '<div style="flex:1;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:17px">'+esc(S.period||"-")+'</div>'+
       '</div>')+
-      '<div class="row" style="margin-top:8px">'+
-        (S.sport==="TENNIS"?'<button id="tgTb" class="'+(S.tn.tb?"on":"")+'">'+(S.tn.tb?"🔥 타이브레이크 중":"타이브레이크 켜기")+'</button>':"")+
+      '<div class="grid'+(S.sport==="TENNIS"?"3":"2")+'" style="margin-top:8px">'+
+        (S.sport==="TENNIS"?'<button id="tgTb" class="'+(S.tn.tb?"on":"")+'">'+(S.tn.tb?"🔥 타이브레이크":"타이브레이크")+'</button>':"")+
         '<button id="over" class="'+(S.over?"on":"")+'">'+(S.over?"경기중으로":"경기 종료 (결과표)")+'</button>'+
+        '<button id="newMatch">🔄 새 경기</button>'+
       '</div>'+
     '</div>'+
 
@@ -988,7 +991,7 @@ function renderControl(){
       '</div>'+
       '<div class="grid2" style="margin-top:8px">'+
         '<button id="rstTimer">시간 처음으로</button>'+
-        '<button id="reset" class="warn">전부 초기화</button>'+
+        '<button id="reset" class="warn">전부 초기화 (팀 이름까지)</button>'+
       '</div>'+
     '</div>'+
 
@@ -1021,6 +1024,30 @@ function renderControl(){
 var UNDO = [];
 function snap(){ UNDO.push(JSON.stringify(S)); if(UNDO.length > 60) UNDO.shift(); }
 
+/* 세트 자동 넘김 — 기다리는 사이 점수를 고치면(− 등) 세트 승자가 사라지므로 넘기지 않는다 */
+var AUTO_SET_MS = 5000, autoSetTimer = null;
+function scheduleAutoSet(){
+  clearTimeout(autoSetTimer);
+  var mark = S.home.score + ":" + S.away.score + ":" + S.home.hist.length;
+  autoSetTimer = setTimeout(function(){
+    if(!S.autoSet || !setWinner() || S.home.score + ":" + S.away.score + ":" + S.home.hist.length !== mark) return;
+    snap(); closeSet(); save(); render();
+    toast(S.period + " 시작", 1800);
+  }, AUTO_SET_MS);
+}
+/* 새 경기 — 팀 이름·색·종목·규칙·화면 설정은 두고 점수만 처음으로 */
+function newMatch(){
+  ["home","away"].forEach(function(k){
+    var t = S[k];
+    t.score = 0; t.sets = 0; t.hist = []; t.pts = 0; t.games = 0; t.fouls = 0;
+  });
+  setServe("home"); S.firstServe = "home";
+  S.over = false; S.tn.tb = false;
+  S.timerAcc = 0; S.timerRunning = false; S.timerBase = Date.now();
+  S.period = firstPeriod();
+  if(PR().serve === "tt") ttServe();
+}
+
 function bindControl(){
   var $ = function(id){ return document.getElementById(id); };
   document.querySelectorAll("[data-s]").forEach(function(b){
@@ -1034,8 +1061,13 @@ function bindControl(){
       save(); render();
       var w = setWinner();
       if(w && w !== before){
-        var last = S[w].sets + 1 >= need();
-        toast(S[w].name+" "+(last?"경기":"세트")+" 획득 "+S.home.score+":"+S.away.score+"\n「세트 종료」를 누르세요", 3000);
+        var last = S[w].sets + 1 >= need(), word = PR().unit === "GAME" ? "게임" : "세트";
+        if(S.autoSet && !last){
+          toast(S[w].name+" "+word+" 획득 "+S.home.score+":"+S.away.score+"\n"+(AUTO_SET_MS/1000)+"초 뒤 다음 "+word+"로 (취소하려면 −)", AUTO_SET_MS);
+          scheduleAutoSet();
+        }else{
+          toast(S[w].name+" "+(last?"경기":word)+" 획득 "+S.home.score+":"+S.away.score+"\n「"+word+" 종료」를 누르세요", 3000);
+        }
       }
     };
   });
@@ -1098,6 +1130,7 @@ function bindControl(){
   document.querySelectorAll("[data-rule]").forEach(function(inp){
     inp.onchange = function(){ S.rules[inp.dataset.rule] = Math.max(0, parseInt(inp.value,10)||0); save(); render(); };
   });
+  if($("autoSet")) $("autoSet").onchange = function(){ S.autoSet = $("autoSet").checked; save(); render(); };
   if($("ruleDeuce")) $("ruleDeuce").onchange = function(){ S.rules.deuce = $("ruleDeuce").value === "1"; save(); render(); };
   if($("bestOf"))  $("bestOf").onchange  = function(){ S.bestOf = +$("bestOf").value; save(); render(); };
   document.querySelectorAll("[data-n]").forEach(function(i){
@@ -1127,6 +1160,10 @@ function bindControl(){
   document.querySelectorAll("[data-step]").forEach(function(b){
     b.onclick = function(){ snap(); stepPeriod(+b.dataset.step); save(); render(); };
   });
+  $("newMatch").onclick = function(){
+    if(!confirm("점수·세트를 0으로 하고 새 경기를 시작합니다.\n(팀 이름·색·종목·규칙은 그대로)")) return;
+    snap(); newMatch(); save(); render(); toast("새 경기 — "+S.period, 1800);
+  };
   $("over").onclick = function(){
     snap();
     S.over = !S.over;
