@@ -230,6 +230,7 @@
   .chipN button+button{padding:8px 10px;color:var(--ui-sub);border-left:1px solid var(--ui-input-line)}
   .chipN.on{background:#166534;border-color:#22C55E}
   .chipN.on button{color:#fff}
+  .presetbox{background:var(--ui-card2);border:1px solid var(--ui-line);border-radius:12px;padding:12px;margin-bottom:6px}
   .posgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
   .posgrid button{min-height:44px;font-size:13.5px}
   details.room{margin-top:12px;border-top:1px solid var(--ui-line);padding-top:10px}
@@ -583,6 +584,47 @@ function subscribe(){
 }
 subscribe();
 subscribeImg();
+/* ── 프리셋 ────────────────────────────────────────────────
+   경기 방식·화면 설정을 이름 붙여 저장 → 다음 경기에서 한 번에 불러오기. 점수·팀 이름은 넣지 않는다.
+   이 기기(localStorage)와 방 코드(서버: scoreboard_preset/<방>) 양쪽에 두고, 이름이 같으면 최근 것을 쓴다 */
+var FB_PRESET = "https://matchmaker-28187-default-rtdb.asia-southeast1.firebasedatabase.app/scoreboard_preset/";
+var PRESET_FIELDS = ["sport","rules","bestOf","tn","custom","autoSet","layout","theme","opacity","el","notices",
+                     "tournament","channel","stage","showTimer","timerDir","timerLen"];
+function loadPresets(){ try{ return JSON.parse(localStorage.getItem("sb_presets_v1")) || {}; }catch(e){ return {}; } }
+var PRESETS_SAVED = loadPresets();
+function presetKey(name){ return name.replace(/[.#$\/\[\]]/g, "_").slice(0, 40); }   // Firebase 키에 못 쓰는 글자
+function storePresets(push){
+  try{ localStorage.setItem("sb_presets_v1", JSON.stringify(PRESETS_SAVED)); }catch(e){ toast("이 기기 저장 공간이 부족합니다", 2400); }
+  if(push && ROOM) fetch(FB_PRESET + encodeURIComponent(ROOM) + ".json", {method:"PUT", body:JSON.stringify(PRESETS_SAVED)}).catch(function(){});
+}
+function pullPresets(){
+  if(!ROOM || VIEW !== "control") return;
+  fetch(FB_PRESET + encodeURIComponent(ROOM) + ".json").then(function(r){ return r.json(); }).then(function(remote){
+    var changed = false;
+    for(var k in (remote||{})){
+      var r = remote[k], l = PRESETS_SAVED[k];
+      if(r && (!l || (r.at||0) > (l.at||0))){ PRESETS_SAVED[k] = r; changed = true; }
+    }
+    storePresets(!remote || Object.keys(PRESETS_SAVED).length !== Object.keys(remote).length);
+    if(changed) render();
+  }).catch(function(){});
+}
+function savePreset(name){
+  var data = {};
+  PRESET_FIELDS.forEach(function(f){ data[f] = JSON.parse(JSON.stringify(S[f])); });
+  PRESETS_SAVED[presetKey(name)] = {name:name, at:Date.now(), data:data, img:{tour:IMG.tour, ch:IMG.ch}};
+  storePresets(true);
+}
+function applyPreset(key){
+  var p = PRESETS_SAVED[key];
+  if(!p) return;
+  var v = JSON.parse(JSON.stringify(S));
+  PRESET_FIELDS.forEach(function(f){ if(p.data[f] !== undefined) v[f] = JSON.parse(JSON.stringify(p.data[f])); });
+  S = merge(v);
+  newMatch();                                         // 점수·세트는 처음으로, 팀 이름은 그대로
+  if(p.img){ IMG = {tour:p.img.tour||"", ch:p.img.ch||""}; saveImg(); }
+}
+pullPresets();
 if(AUTO_ROOM) save();                                 // 새 방에 지금 상태를 올려 둔다
 
 /* ── 타이머 ── */
@@ -1060,6 +1102,25 @@ function sportOptionsHTML(){
   }
   return o;
 }
+/* 프리셋 칸 */
+function presetHTML(){
+  var keys = Object.keys(PRESETS_SAVED).sort(function(a, b){ return (PRESETS_SAVED[b].at||0) - (PRESETS_SAVED[a].at||0); });
+  return '<div class="presetbox">'+
+    '<label class="f" style="margin-top:0">💾 프리셋 <span style="font-weight:600">— 종목·규칙·로고·배치·색·안내문구를 한 번에 (점수·팀 이름 제외)</span></label>'+
+    (keys.length ? '<div class="row">'+
+      '<select class="t" id="presetSel" style="flex:1">'+keys.map(function(k){
+        var d = new Date(PRESETS_SAVED[k].at||0);
+        return '<option value="'+esc(k)+'">'+esc(PRESETS_SAVED[k].name)+' ('+(d.getMonth()+1)+'/'+d.getDate()+')</option>';
+      }).join("")+'</select>'+
+      '<button id="presetLoad" class="on" style="flex:0 0 96px">불러오기</button>'+
+      '<button id="presetDel" style="flex:0 0 64px">삭제</button>'+
+    '</div>' : '<div class="hint" style="margin-top:0">저장된 프리셋이 없습니다. 설정을 다 맞춘 뒤 아래에서 이름을 붙여 저장하세요.</div>')+
+    '<div class="row" style="margin-top:8px">'+
+      '<input class="t" id="presetName" maxlength="30" placeholder="예: 스포츠클럽 배구 여고부" style="flex:1">'+
+      '<button id="presetSave" style="flex:0 0 160px">지금 설정 저장</button>'+
+    '</div>'+
+  '</div>';
+}
 /* 안내 멘트 칸 */
 function noticeCardHTML(){
   var n = S.notice;
@@ -1181,6 +1242,7 @@ function renderControl(){
     '</div>'+
 
     '<div class="card"><h2>경기 설정 <span class="h2sub">경기 전에 미리 맞춰 두세요</span></h2>'+
+      presetHTML()+
       '<div class="grid2">'+
         '<div><label class="f">단계 (예: 준결승)</label><input class="t" id="fStage" value="'+esc(S.stage)+'" maxlength="10"></div>'+
         '<div><label class="f">현재 (예: SET 2)</label><input class="t" id="fPeriod" value="'+esc(S.period)+'" maxlength="10"></div>'+
@@ -1451,7 +1513,7 @@ function bindControl(){
   function switchRoom(code){
     ROOM = code; KEY = "sb_state_v1_" + ROOM;
     try{ localStorage.setItem("sb_room", ROOM); }catch(e){}
-    NET = null; subscribe(); subscribeImg(); refreshUrl();
+    NET = null; subscribe(); subscribeImg(); pullPresets(); refreshUrl();
   }
   $("mkRoom").onclick = function(){
     if(!confirm("새 코드로 바꾸면 오버레이 주소도 바뀝니다.\nOBS·카메라파이에 새 주소를 다시 넣어야 합니다. 바꿀까요?")) return;
@@ -1470,6 +1532,23 @@ function bindControl(){
   });
   $("thDark").onclick  = function(){ S.theme = "dark";  save(); render(); };
   $("thLight").onclick = function(){ S.theme = "light"; save(); render(); };
+  $("presetSave").onclick = function(){
+    var n = $("presetName").value.trim();
+    if(!n){ toast("프리셋 이름을 적어 주세요", 1800); return; }
+    var k = presetKey(n);
+    if(PRESETS_SAVED[k] && !confirm("「"+n+"」 프리셋을 지금 설정으로 덮어쓸까요?")) return;
+    savePreset(n); render(); toast("「"+n+"」 저장했습니다", 1800);
+  };
+  if($("presetLoad")) $("presetLoad").onclick = function(){
+    var k = $("presetSel").value, p = PRESETS_SAVED[k];
+    if(!p || !confirm("「"+p.name+"」 설정을 불러옵니다.\n점수·세트는 0으로 돌아가고 팀 이름은 그대로입니다.")) return;
+    snap(); applyPreset(k); save(); render(); toast("「"+p.name+"」 불러왔습니다", 1800);
+  };
+  if($("presetDel")) $("presetDel").onclick = function(){
+    var k = $("presetSel").value, p = PRESETS_SAVED[k];
+    if(!p || !confirm("「"+p.name+"」 프리셋을 지웁니다.")) return;
+    delete PRESETS_SAVED[k]; storePresets(true); render();
+  };
   function noticeOn(text){
     S.notice.text = text; S.notice.on = true; S.notice.since = Date.now();
     save(); render();
