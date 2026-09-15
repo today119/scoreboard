@@ -62,7 +62,14 @@
 
   /* ── 오버레이 ── */
   #sbStage{position:fixed;inset:0;overflow:hidden;pointer-events:none}
-  .anchor{position:fixed;transition:transform .2s ease-out}
+  #stageBox{position:relative;overflow:hidden;border-radius:12px;border:1px solid var(--ui-line);
+            background:linear-gradient(160deg,#35533a,#27402d 55%,#1c2e21)}
+  #stageInner{position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0}
+  #stageInner .anchor{position:absolute}
+  .eltabs{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+  .nudge{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .nudge button{min-height:44px;font-size:18px;padding:0}
+  .anchor{position:fixed}   /* transition 금지 — 겹침 계산이 옮겨지는 도중 값을 읽게 된다 */
   .board{
     display:flex;align-items:stretch;min-height:90px;
     background:var(--bd-bg);backdrop-filter:blur(14px);
@@ -299,9 +306,9 @@ var KEY   = "sb_state_v1" + (ROOM ? "_"+ROOM : "");
 var POS = "BL", SCALE = 1, THEME = "dark";
 function fixed(name){ return VIEW === "overlay" ? Q.get(name) : null; }
 function syncView(){
-  var p = (fixed("pos") || S.pos || "BL").toUpperCase();
+  var p = (fixed("pos") || S.el.board.pos || "BL").toUpperCase();
   POS = /^[TB][LCR]$/.test(p) ? p : "BL";
-  SCALE = parseFloat(fixed("scale") || S.scale) || 1;
+  SCALE = parseFloat(fixed("scale") || S.el.board.scale) || 1;
   THEME = (fixed("theme") || S.theme) === "light" ? "light" : "dark";
 }
 function mkCode(){
@@ -368,7 +375,9 @@ var DEF = {
   timerDir:"up", timerLen:10,                         // 내려가는 시간은 timerLen 분에서 뺀다
   tournament:"", channel:"",
   over:false, bestOf:3,
-  layout:"bar", pos:"BL", scale:1, theme:"dark",
+  layout:"bar", theme:"dark",
+  /* 배치 — 점수판·대회명·채널명을 따로. x·y 는 1920×1080 기준 px (화면 크기에 비례해 줄고 늘어난다) */
+  el:{ board:{pos:"BL", scale:1, x:0, y:0}, tour:{pos:"TL", scale:1, x:0, y:0}, ch:{pos:"TR", scale:1, x:0, y:0} },
   autoSet:false,                                      // 세트 자동 넘김 — 최종 점수를 AUTO_SET_MS 보여준 뒤
   rules:{target:25, lastTarget:15, deuce:true, cap:0},   // 세트 규칙 — 종목을 고르면 그 종목 기본값으로 채워진다
   firstServe:"home",                                  // 탁구: 이번 세트 첫 서브
@@ -385,6 +394,9 @@ function merge(v){
   d.away = Object.assign(d.away, v.away||{});
   d.tn   = Object.assign(d.tn,   v.tn||{});
   d.custom = Object.assign(d.custom, v.custom||{});
+  ["board","tour","ch"].forEach(function(k){ d.el[k] = Object.assign(d.el[k], (v.el||{})[k]||{}); });
+  if(!v.el && v.pos)   d.el.board.pos = v.pos;         // 배치가 따로 없던 예전 저장본
+  if(!v.el && v.scale) d.el.board.scale = v.scale;
   if(d.sport === "GENERAL") d.sport = "CUSTOM";       // v1 의 「일반」
   if(!PRESETS[d.sport]) d.sport = "CUSTOM";
   d.rules = v.rules ? Object.assign(d.rules, v.rules) : presetRules(d.sport, d.custom);   // 규칙이 없던 예전 저장본
@@ -563,16 +575,47 @@ function fmt(ms){
 }
 
 /* ── 오버레이 ── */
-function posStyle(el){
-  var st = { transformOrigin:"", transform:"" };
-  var v = POS[0]==="T" ? "top" : "bottom";
-  var h = POS[1]==="L" ? "left" : (POS[1]==="R" ? "right" : "center");
-  el.style[v] = "40px";
-  var tr = "";
-  if(h==="center"){ el.style.left="50%"; tr="translateX(-50%) "; }
-  else el.style[h] = "40px";
-  el.style.transformOrigin = v+" "+(h==="center"?"center":h);
-  el.style.transform = tr + "scale("+SCALE+")";
+/* ── 배치 ──
+   W×H 화면 안에 점수판·대회명·채널명을 놓는다. 오버레이 = 창 크기, 조작 화면 미리보기 = 1920×1080 상자.
+   k = 화면이 1920×1080 보다 작으면 그만큼 줄인다 → 카메라파이(작은 화면)·OBS(1920)에서 같은 비율로 보인다.
+   zoom = 미리보기 상자처럼 화면에 줄여 그릴 때의 배율 (겹침 계산을 화면 px → 상자 px 로 바꿀 때) */
+function place(el, cfg, k){
+  var pos = /^[TB][LCR]$/.test(cfg.pos) ? cfg.pos : "BL", m = 40*k;
+  var v = pos[0]==="T" ? "top" : "bottom", h = pos[1]==="L" ? "left" : pos[1]==="R" ? "right" : "center";
+  el.style.top = el.style.bottom = el.style.left = el.style.right = "";
+  el.style[v] = m + "px";
+  var tr = "translate("+((+cfg.x||0)*k)+"px,"+((+cfg.y||0)*k)+"px) ";
+  if(h === "center"){ el.style.left = "50%"; tr = "translateX(-50%) " + tr; }
+  else el.style[h] = m + "px";
+  el.style.transformOrigin = v + " " + h;
+  el.style.transform = tr + "scale(" + ((+cfg.scale||1)*k) + ")";
+}
+function placeAll(root, W, H, zoom){
+  var k = Math.min(W/1920, H/1080), m = 40*k;
+  var t = root.querySelector('[data-el="tour"]'), c = root.querySelector('[data-el="ch"]'), bd = root.querySelector('[data-el="board"]');
+  if(t) place(t, S.el.tour, k);
+  if(c) place(c, S.el.ch, k);
+  if(!bd) return;
+  var b = {pos:POS, scale:SCALE, x:S.el.board.x, y:S.el.board.y};
+  if(layout() === "wide" && !S.over){
+    /* 와이드는 좌우 여백만 두고 폭을 꽉 채운다 — 위/아래만 pos 를 따른다 */
+    var v = POS[0]==="T" ? "top" : "bottom", sc = SCALE*k;
+    bd.style.top = bd.style.bottom = bd.style.right = "";
+    bd.style[v] = m + "px"; bd.style.left = m + "px";
+    bd.style.width = ((W - 2*m) / sc) + "px";
+    bd.style.transformOrigin = v + " left";
+    bd.style.transform = "translate(0," + ((+b.y||0)*k) + "px) scale(" + sc + ")";
+  }else place(bd, b, k);
+  /* 점수판을 손으로 옮기지 않았으면, 대회명·채널명과 겹칠 때 비켜 준다 (위쪽이면 아래로, 아래쪽이면 위로) */
+  if(+b.x || +b.y) return;
+  [t, c].forEach(function(el){
+    if(!el) return;
+    var r1 = el.getBoundingClientRect(), r2 = bd.getBoundingClientRect(), gap = 14*k*zoom;
+    var overlap = r1.left < r2.right && r2.left < r1.right && r1.top < r2.bottom && r2.top < r1.bottom;
+    if(!overlap) return;
+    if(POS[0] === "T") bd.style.top = (parseFloat(bd.style.top) + (r1.bottom - r2.top + gap)/zoom) + "px";
+    else bd.style.bottom = (parseFloat(bd.style.bottom) + (r2.bottom - r1.top + gap)/zoom) + "px";
+  });
 }
 function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,function(c){
   return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
@@ -844,47 +887,38 @@ function winGame(k){
 function brandBox(id, text, img, dark){
   if(!text && !img) return "";
   var only = img && !text;
-  return '<div class="anchor" id="'+id+'"><div class="brand'+(only?" imgonly":"")+(img?" hasimg":"")+'"'+
+  return '<div class="anchor" data-el="'+id+'"><div class="brand'+(only?" imgonly":"")+(img?" hasimg":"")+'"'+
     (only ? "" : ' style="background:'+(dark?"#0f172a":"#fff")+';color:'+(dark?"#fff":"#0f172a")+'"')+'>'+
     (img ? '<img src="'+esc(img)+'" alt="">' : "")+
     (text ? '<span>'+esc(text)+'</span>' : "")+
   '</div></div>';
 }
 function brandHTML(){
-  return brandBox("bTour", S.tournament, IMG.tour, true) + brandBox("bCh", S.channel, IMG.ch, false);
+  return brandBox("tour", S.tournament, IMG.tour, true) + brandBox("ch", S.channel, IMG.ch, false);
 }
 
+function stageInner(){
+  return brandHTML() + '<div class="anchor" data-el="board">'+boardHTML()+'</div>';
+}
 function renderOverlay(){
-  document.getElementById("app").innerHTML =
-    '<div id="sbStage">'+brandHTML()+'<div class="anchor" id="bd">'+boardHTML()+'</div></div>';
-  var t = document.getElementById("bTour");
-  if(t){ t.style.top="40px"; t.style.left="40px";  t.style.transformOrigin="top left";  t.style.transform="scale("+SCALE+")"; }
-  var c = document.getElementById("bCh");
-  if(c){ c.style.top="40px"; c.style.right="40px"; c.style.transformOrigin="top right"; c.style.transform="scale("+SCALE+")"; }
-  var bd = document.getElementById("bd");
-  var wide = layout() === "wide" && !S.over;
-  if(wide){
-    /* 와이드는 좌우 여백만 두고 폭을 꽉 채운다 — 위/아래만 pos 를 따른다.
-       scale 로 키우면 넘치므로 폭을 미리 scale 로 나눠 둔다 */
-    var v = POS[0]==="T" ? "top" : "bottom";
-    bd.style[v] = "40px";
-    bd.style.left = "40px";
-    bd.style.width = "calc((100vw - 80px) / "+SCALE+")";
-    bd.style.transformOrigin = v+" left";
-    bd.style.transform = "scale("+SCALE+")";
-  }else posStyle(bd);
-  /* 점수판이 위쪽이면 같은 쪽 대회명·채널명 밑으로 내린다 (가운데·와이드는 둘 다 피한다) */
-  if(POS[0] === "T"){
-    var avoid = [];
-    if(wide || POS[1] !== "R") avoid.push(t);
-    if(wide || POS[1] !== "L") avoid.push(c);
-    var bottom = 0;
-    avoid.forEach(function(el){ if(el) bottom = Math.max(bottom, el.getBoundingClientRect().bottom); });
-    if(bottom) bd.style.top = Math.round(bottom + 14) + "px";
-  }
+  document.getElementById("app").innerHTML = '<div id="sbStage">'+stageInner()+'</div>';
+  placeAll(document.getElementById("sbStage"), window.innerWidth, window.innerHeight, 1);
   /* 로고 이미지는 늦게 뜰 수 있다 — 다 뜬 뒤에 한 번 더 자리 계산 */
   document.querySelectorAll("#sbStage .brand img").forEach(function(im){
-    if(!im.complete) im.onload = function(){ if(VIEW === "overlay") renderOverlay(); };
+    if(!im.complete) im.onload = function(){ placeAll(document.getElementById("sbStage"), window.innerWidth, window.innerHeight, 1); };
+  });
+}
+window.addEventListener("resize", function(){ if(VIEW === "overlay") renderOverlay(); else fitStage(); });
+/* 조작 화면의 16:9 배치 미리보기 — 1920×1080 상자를 폭에 맞게 줄여 그린다 */
+function fitStage(){
+  var box = document.getElementById("stageBox"), inner = document.getElementById("stageInner");
+  if(!box || !inner) return;
+  var z = box.clientWidth / 1920;
+  inner.style.transform = "scale(" + z + ")";
+  box.style.height = (1080 * z) + "px";
+  placeAll(inner, 1920, 1080, z);
+  inner.querySelectorAll(".brand img").forEach(function(im){
+    if(!im.complete) im.onload = function(){ placeAll(inner, 1920, 1080, z); };
   });
 }
 
@@ -993,6 +1027,29 @@ function sportOptionsHTML(){
   }
   return o;
 }
+/* 배치 조절 — 고른 것 하나(점수판·대회명·채널명)의 위치·크기·미세 이동 */
+var EDIT_EL = "board";                                // 이 기기에서만 기억 (동기화 안 함)
+function elControlsHTML(){
+  var e = S.el[EDIT_EL], isBoard = EDIT_EL === "board";
+  var cur = isBoard ? POS : e.pos, sc = isBoard ? SCALE : (+e.scale||1);
+  var empty = (EDIT_EL === "tour" && !S.tournament && !IMG.tour) || (EDIT_EL === "ch" && !S.channel && !IMG.ch);
+  return (empty ? '<div class="hint">아래 「경기 설정」에서 '+(EDIT_EL==="tour"?"대회명":"채널명")+' 글자나 이미지를 넣으면 화면에 나타납니다.</div>' : "")+
+    '<label class="f">위치'+(isBoard && layout()==="wide"?' <span style="font-weight:600">(와이드는 위/아래만)</span>':'')+'</label>'+
+    '<div class="posgrid">'+
+      ["TL","TC","TR","BL","BC","BR"].map(function(p){
+        var ko={TL:"↖ 왼쪽 위",TC:"↑ 가운데 위",TR:"↗ 오른쪽 위",BL:"↙ 왼쪽 아래",BC:"↓ 가운데 아래",BR:"↘ 오른쪽 아래"}[p];
+        return '<button data-pos="'+p+'" class="'+(cur===p?"on":"")+'">'+ko+'</button>';
+      }).join("")+
+    '</div>'+
+    '<label class="f">크기 <b id="scaleLbl">'+sc.toFixed(2)+'배</b></label>'+
+    '<input class="t" type="range" id="scale" min="0.3" max="2.5" step="0.05" value="'+sc+'">'+
+    '<label class="f">미세 이동 <span style="font-weight:600">(가로 '+(+e.x||0)+' · 세로 '+(+e.y||0)+')</span></label>'+
+    '<div class="nudge">'+
+      '<button data-nudge="-20|0">←</button><button data-nudge="0|-20">↑</button>'+
+      '<button data-nudge="0|20">↓</button><button data-nudge="20|0">→</button>'+
+      '<button data-nudge="reset" style="font-size:13px">처음 자리</button>'+
+    '</div>';
+}
 /* 대회명·채널명 칸 — 글자 + 이미지 */
 function brandInputHTML(k, label, text){
   var img = IMG[k];
@@ -1055,15 +1112,14 @@ function renderControl(){
         '<button id="thDark" class="'+(THEME==="dark"?"on":"")+'">🌙 어두운 점수판</button>'+
         '<button id="thLight" class="'+(THEME==="light"?"on":"")+'">☀️ 밝은 점수판</button>'+
       '</div>'+
-      '<label class="f">위치'+(layout()==="wide"?' <span style="font-weight:600">(와이드는 위/아래만)</span>':'')+'</label>'+
-      '<div class="posgrid">'+
-        ["TL","TC","TR","BL","BC","BR"].map(function(p){
-          var ko={TL:"↖ 왼쪽 위",TC:"↑ 가운데 위",TR:"↗ 오른쪽 위",BL:"↙ 왼쪽 아래",BC:"↓ 가운데 아래",BR:"↘ 오른쪽 아래"}[p];
-          return '<button data-pos="'+p+'" class="'+(POS===p?"on":"")+'">'+ko+'</button>';
+      '<label class="f">방송 화면 배치 <span style="font-weight:600">— 16:9 화면에 실제 자리대로</span></label>'+
+      '<div id="stageBox"><div id="stageInner">'+stageInner()+'</div></div>'+
+      '<div class="eltabs">'+
+        [["board","📊 점수판"],["tour","🏆 대회명"],["ch","📺 채널명"]].map(function(x){
+          return '<button data-edit-el="'+x[0]+'" class="'+(EDIT_EL===x[0]?"on":"")+'">'+x[1]+'</button>';
         }).join("")+
       '</div>'+
-      '<label class="f">크기 <b id="scaleLbl">'+SCALE.toFixed(2)+'배</b></label>'+
-      '<input class="t" type="range" id="scale" min="0.5" max="2" step="0.05" value="'+SCALE+'">'+
+      elControlsHTML()+
     '</div>'+
 
     '<div class="card"><h2>경기 설정 <span class="h2sub">경기 전에 미리 맞춰 두세요</span></h2>'+
@@ -1125,6 +1181,7 @@ function renderControl(){
   '</div>';
 
   bindControl();
+  fitStage();
 }
 
 /* 되돌리기 — 누르기 직전 상태를 쌓아 둔다 (이 기기에서 누른 것만) */
@@ -1281,7 +1338,7 @@ function bindControl(){
   [["fStage","stage"],["fPeriod","period"]].forEach(function(pair){
     $(pair[0]).oninput = function(){ S[pair[1]] = $(pair[0]).value; save(); renderOverlayPreviewOnly(); };
   });
-  $("tour").oninput = function(){ S.tournament = $("tour").value; save(); };
+  $("tour").oninput = function(){ S.tournament = $("tour").value; save(); renderOverlayPreviewOnly(); };
   document.querySelectorAll("[data-img]").forEach(function(inp){
     inp.onchange = function(){
       var f = inp.files && inp.files[0], k = inp.dataset.img;
@@ -1297,7 +1354,7 @@ function bindControl(){
   document.querySelectorAll("[data-imgdel]").forEach(function(b){
     b.onclick = function(){ IMG[b.dataset.imgdel] = ""; saveImg(); render(); };
   });
-  $("ch").oninput   = function(){ S.channel    = $("ch").value;   save(); };
+  $("ch").oninput   = function(){ S.channel    = $("ch").value;   save(); renderOverlayPreviewOnly(); };
   $("sport").onchange = function(){
     snap(); applySport($("sport").value); save(); render();
     toast(PR().emoji+" "+PR().label+"(으)로 바꿨습니다\n점수는 그대로입니다 — 새 경기면 「전부 초기화」", 2600);
@@ -1355,13 +1412,25 @@ function bindControl(){
   });
   $("thDark").onclick  = function(){ S.theme = "dark";  save(); render(); };
   $("thLight").onclick = function(){ S.theme = "light"; save(); render(); };
+  document.querySelectorAll("[data-edit-el]").forEach(function(b){
+    b.onclick = function(){ EDIT_EL = b.dataset.editEl; render(); };
+  });
   document.querySelectorAll("[data-pos]").forEach(function(b){
-    b.onclick = function(){ S.pos = b.dataset.pos; save(); render(); };
+    b.onclick = function(){ S.el[EDIT_EL].pos = b.dataset.pos; save(); render(); };
+  });
+  document.querySelectorAll("[data-nudge]").forEach(function(b){
+    b.onclick = function(){
+      var e = S.el[EDIT_EL];
+      if(b.dataset.nudge === "reset"){ e.x = 0; e.y = 0; }
+      else{ var d = b.dataset.nudge.split("|"); e.x = (+e.x||0) + (+d[0]); e.y = (+e.y||0) + (+d[1]); }
+      save(); render();
+    };
   });
   $("scale").oninput = function(){                    // 끄는 동안엔 화면을 통째로 다시 그리지 않는다(슬라이더가 끊김)
-    S.scale = parseFloat($("scale").value) || 1; SCALE = S.scale;
-    $("scaleLbl").textContent = SCALE.toFixed(2) + "배";
-    save();
+    var v = parseFloat($("scale").value) || 1;
+    S.el[EDIT_EL].scale = v; syncView();
+    $("scaleLbl").textContent = v.toFixed(2) + "배";
+    fitStage(); save();
   };
   $("scale").onchange = function(){ render(); };
   $("copyUrl").onclick = function(){
@@ -1382,6 +1451,8 @@ function refreshUrl(){
 function renderOverlayPreviewOnly(){
   var p = document.querySelector(".prev");
   if(p) p.innerHTML = boardHTML();
+  var si = document.getElementById("stageInner");
+  if(si){ si.innerHTML = stageInner(); fitStage(); }
 }
 
 var toastTimer = null;
@@ -1405,7 +1476,7 @@ if(VIEW === "control") refreshUrl();
 setInterval(function(){
   if(!S.showTimer) return;
   if(VIEW === "overlay"){ var t = document.querySelector(".timer"); if(t) t.textContent = fmt(timerShown()); }
-  else { var p = document.querySelector(".prev .timer"); if(p) p.textContent = fmt(timerShown()); }
+  else document.querySelectorAll(".prev .timer, #stageInner .timer").forEach(function(p){ p.textContent = fmt(timerShown()); });
 }, 500);
 })();
 </script>
