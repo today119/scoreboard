@@ -2,7 +2,6 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "scoreboard": {
       "$room": {
         ".read": true,
@@ -15,9 +14,15 @@
         ".read": true,
         ".write": true,
         ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)",
-        "tour": { ".validate": "newData.isString() && newData.val().length < 600000" },
-        "ch":   { ".validate": "newData.isString() && newData.val().length < 600000" },
-        "$other": { ".validate": false }
+        "tour": {
+          ".validate": "newData.isString() && newData.val().length < 600000"
+        },
+        "ch": {
+          ".validate": "newData.isString() && newData.val().length < 600000"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "scoreboard_preset": {
@@ -25,6 +30,28 @@
         ".read": true,
         ".write": true,
         ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)"
+      }
+    },
+    "haru_family": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/)",
+        "members": {
+          "$m": {
+            ".validate": "$m.matches(/^[a-z0-9]{1,8}$/) && newData.child('name').isString() && newData.child('name').val().length <= 12"
+          }
+        },
+        "log": {
+          "$m": {
+            "$d": {
+              ".validate": "$d.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/) && newData.hasChildren()"
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     }
   }
