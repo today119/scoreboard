@@ -53,6 +53,22 @@
           ".validate": false
         }
       }
+    },
+    "academy_makeup": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && (!newData.exists() || (newData.child('at').isNumber() && newData.child('d').isString() && newData.child('d').val().length < 500000))",
+        "at": {
+          ".validate": true
+        },
+        "d": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
