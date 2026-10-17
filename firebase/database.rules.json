@@ -70,6 +70,15 @@
         }
       }
     },
+    "today_todo_img": {
+      "$fam": {
+        "$img": {
+          ".read": true,
+          ".write": true,
+          ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && $img.matches(/^[a-z0-9]{4,12}$/) && (!newData.exists() || (newData.isString() && newData.val().length < 700000))"
+        }
+      }
+    },
     "today_todo": {
       "$fam": {
         ".read": true,
