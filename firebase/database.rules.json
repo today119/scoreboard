@@ -94,6 +94,24 @@
           ".validate": false
         }
       }
+    },
+    "wereplay": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Z0-9]{6}$/)",
+        "info": {
+          ".validate": "newData.hasChildren(['home','away','rules'])"
+        },
+        "events": {
+          "$e": {
+            ".validate": "$e.matches(/^e[a-z0-9]{6,24}$/) && newData.hasChildren(['at','device','kind'])"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
