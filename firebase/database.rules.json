@@ -112,6 +112,29 @@
           ".validate": false
         }
       }
+    },
+    "wereplay_live": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Z0-9]{6}$/)",
+        "want": {
+          ".validate": "newData.isNumber()"
+        },
+        "cams": {
+          "$cam": {
+            ".validate": "newData.hasChildren(['at','jpg']) && newData.child('jpg').isString() && newData.child('jpg').val().length < 200000"
+          }
+        },
+        "clips": {
+          "$clip": {
+            ".validate": "newData.hasChildren(['meta','data']) && newData.child('data').isString() && newData.child('data').val().length < 3000000"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     }
   }
 }
