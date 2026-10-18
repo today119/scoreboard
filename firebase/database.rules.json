@@ -133,6 +133,9 @@
         },
         "$other": {
           ".validate": false
+        },
+        "viewer": {
+          ".validate": "newData.isNumber()"
         }
       }
     }
