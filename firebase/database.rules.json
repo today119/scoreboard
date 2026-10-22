@@ -136,6 +136,9 @@
         },
         "viewer": {
           ".validate": "newData.isNumber()"
+        },
+        "style": {
+          ".validate": "newData.hasChildren(['json','at']) && newData.child('json').isString() && newData.child('json').val().length < 20000"
         }
       }
     }
