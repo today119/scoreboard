@@ -162,6 +162,12 @@
         "run": {
           ".validate": "newData.hasChildren(['on'])"
         },
+        "at": {
+          ".validate": "newData.hasChildren(['on','tp']) && newData.child('tp').isNumber()"
+        },
+        "band": {
+          ".validate": "newData.hasChildren(['name']) && newData.child('name').isString() && newData.child('name').val().length <= 30 && (!data.exists() || newData.child('made').val() == data.child('made').val())"
+        },
         "m": {
           "$cid": {
             ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.child('name').isString() && newData.child('name').val().length <= 20"
@@ -172,11 +178,39 @@
             ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isNumber()"
           }
         },
-        "$other": {
-          ".validate": false
-        },
         "lib": {
           ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9]{16,40}$/)"
+        },
+        "nt": {
+          ".validate": "newData.hasChildren(['txt']) && newData.child('txt').isString() && newData.child('txt').val().length <= 500"
+        },
+        "ev": {
+          "$id": {
+            ".validate": "$id.matches(/^[a-z0-9]{6,16}$/) && newData.hasChildren(['ty','d']) && newData.child('d').isString() && newData.child('d').val().matches(/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/)"
+          }
+        },
+        "rs": {
+          "$id": {
+            "$d": {
+              "$cid": {
+                ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.hasChildren(['s'])"
+              }
+            }
+          }
+        },
+        "pr": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/)",
+            "$day": {
+              ".validate": "$day.matches(/^[0-9]{8}$/)",
+              "$song": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 86400"
+              }
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
         }
       }
     },
@@ -185,6 +219,28 @@
         ".read": true,
         ".write": false,
         ".validate": "$key.matches(/^[A-Za-z0-9]{16,40}$/)"
+      }
+    },
+    "family_trip": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/)",
+        "$col": {
+          ".validate": "$col.matches(/^(trip|items|places|pack|money|docs|trash)$/)",
+          "$id": {
+            ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,24}$/)"
+          }
+        }
+      }
+    },
+    "family_trip_img": {
+      "$fam": {
+        "$img": {
+          ".read": true,
+          ".write": true,
+          ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && $img.matches(/^[a-z0-9]{4,16}$/) && (!newData.exists() || (newData.isString() && newData.val().length < 700000))"
+        }
       }
     }
   }
