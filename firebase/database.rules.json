@@ -242,6 +242,12 @@
           ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && $img.matches(/^[a-z0-9]{4,16}$/) && (!newData.exists() || (newData.isString() && newData.val().length < 700000))"
         }
       }
+    },
+    "band_play_req": {
+      "$id": {
+        ".write": "!data.exists()",
+        ".validate": "$id.matches(/^[a-z0-9]{6,16}$/) && newData.hasChildren(['song','t']) && newData.child('song').isString() && newData.child('song').val().length <= 80"
+      }
     }
   }
 }
