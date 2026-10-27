@@ -209,6 +209,11 @@
             }
           }
         },
+        "dbg": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && newData.val().length <= 6000"
+          }
+        },
         "$other": {
           ".validate": false
         }
