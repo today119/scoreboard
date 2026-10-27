@@ -219,6 +219,11 @@
             ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && (newData.val().matches(/^(lead|chief|vice|mgr|sec|acct)$/) || (newData.val().beginsWith('c:') && newData.val().length <= 12))"
           }
         },
+        "ar": {
+          "$song": {
+            ".validate": "$song.matches(/^[a-z0-9_-]{1,40}$/) && newData.child('s').isString() && newData.child('s').val().length <= 2000 && (!newData.child('o').exists() || newData.child('o').isString() && newData.child('o').val().length <= 1000) && (!newData.child('tr').exists() || newData.child('tr').isNumber() && newData.child('tr').val() >= -6 && newData.child('tr').val() <= 6)"
+          }
+        },
         "rq": {
           "$cid": {
             ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.child('name').isString() && newData.child('name').val().length <= 20"
@@ -230,7 +235,7 @@
           },
           "pm": {
             "$a": {
-              ".validate": "$a.matches(/^(note|cal|mem|fee)$/) && newData.isString() && newData.val().matches(/^(all|staff|lead)$/)"
+              ".validate": "$a.matches(/^(note|cal|arr|mem|fee)$/) && newData.isString() && newData.val().matches(/^(all|staff|lead)$/)"
             }
           },
           "$o": {
