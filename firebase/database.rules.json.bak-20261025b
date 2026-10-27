@@ -1,0 +1,213 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "scoreboard": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/) && (!newData.exists() || (newData.hasChildren(['home', 'away']) && newData.child('sport').isString()))"
+      }
+    },
+    "scoreboard_img": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)",
+        "tour": {
+          ".validate": "newData.isString() && newData.val().length < 600000"
+        },
+        "ch": {
+          ".validate": "newData.isString() && newData.val().length < 600000"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "scoreboard_preset": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Za-z0-9_-]{1,16}$/)"
+      }
+    },
+    "haru_family": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/)",
+        "members": {
+          "$m": {
+            ".validate": "$m.matches(/^[a-z0-9]{1,8}$/) && newData.child('name').isString() && newData.child('name').val().length <= 12"
+          }
+        },
+        "log": {
+          "$m": {
+            "$d": {
+              ".validate": "$d.matches(/^20[0-9][0-9]-[01][0-9]-[0-3][0-9]$/) && newData.hasChildren()"
+            }
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "academy_makeup": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && (!newData.exists() || (newData.child('at').isNumber() && newData.child('d').isString() && newData.child('d').val().length < 500000))",
+        "at": {
+          ".validate": true
+        },
+        "d": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "today_todo_img": {
+      "$fam": {
+        "$img": {
+          ".read": true,
+          ".write": true,
+          ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && $img.matches(/^[a-z0-9]{4,12}$/) && (!newData.exists() || (newData.isString() && newData.val().length < 700000))"
+        }
+      }
+    },
+    "today_todo": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && (!newData.exists() || (newData.child('at').isNumber() && newData.child('d').isString() && newData.child('d').val().length < 500000))",
+        "at": {
+          ".validate": true
+        },
+        "d": {
+          ".validate": true
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "wereplay": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Z0-9]{6}$/)",
+        "info": {
+          ".validate": "newData.hasChildren(['home','away','rules'])"
+        },
+        "events": {
+          "$e": {
+            ".validate": "$e.matches(/^e[a-z0-9]{6,24}$/) && newData.hasChildren(['at','device','kind'])"
+          }
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "wereplay_live": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[A-Z0-9]{6}$/)",
+        "want": {
+          ".validate": "newData.isNumber()"
+        },
+        "cams": {
+          "$cam": {
+            ".validate": "newData.hasChildren(['at','jpg']) && newData.child('jpg').isString() && newData.child('jpg').val().length < 200000"
+          }
+        },
+        "clips": {
+          "$clip": {
+            ".validate": "newData.hasChildren(['meta','data']) && newData.child('data').isString() && newData.child('data').val().length < 3000000"
+          }
+        },
+        "$other": {
+          ".validate": false
+        },
+        "viewer": {
+          ".validate": "newData.isNumber()"
+        },
+        "style": {
+          ".validate": "newData.hasChildren(['json','at']) && newData.child('json').isString() && newData.child('json').val().length < 20000"
+        }
+      }
+    },
+    "band_play": {
+      "$room": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$room.matches(/^[0-9]{4}$/)",
+        "made": {
+          ".validate": "newData.isNumber()"
+        },
+        "song": {
+          ".validate": "newData.isString() && newData.val().length <= 80"
+        },
+        "bpm": {
+          ".validate": "newData.isNumber() && newData.val() >= 30 && newData.val() <= 300"
+        },
+        "beats": {
+          ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 12"
+        },
+        "run": {
+          ".validate": "newData.hasChildren(['on'])"
+        },
+        "m": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.child('name').isString() && newData.child('name').val().length <= 20"
+          }
+        },
+        "ping": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isNumber()"
+          }
+        },
+        "$other": {
+          ".validate": false
+        },
+        "lib": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9]{16,40}$/)"
+        }
+      }
+    },
+    "band_play_lib": {
+      "$key": {
+        ".read": true,
+        ".write": false,
+        ".validate": "$key.matches(/^[A-Za-z0-9]{16,40}$/)"
+      }
+    },
+    "family_trip": {
+      "$fam": {
+        ".read": true,
+        ".write": true,
+        ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/)",
+        "$col": {
+          ".validate": "$col.matches(/^(trip|items|places|pack|money|docs|trash)$/)",
+          "$id": {
+            ".validate": "$id.matches(/^[A-Za-z0-9_-]{1,24}$/)"
+          }
+        }
+      }
+    },
+    "family_trip_img": {
+      "$fam": {
+        "$img": {
+          ".read": true,
+          ".write": true,
+          ".validate": "$fam.matches(/^[a-z0-9]{10,16}$/) && $img.matches(/^[a-z0-9]{4,16}$/) && (!newData.exists() || (newData.isString() && newData.val().length < 700000))"
+        }
+      }
+    }
+  }
+}
