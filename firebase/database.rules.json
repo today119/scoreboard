@@ -214,6 +214,29 @@
             ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && newData.val().length <= 6000"
           }
         },
+        "ro": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && newData.val().matches(/^(lead|vice|sec|acct)$/)"
+          }
+        },
+        "rq": {
+          "$cid": {
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.child('name').isString() && newData.child('name').val().length <= 20"
+          }
+        },
+        "cfg": {
+          "appr": {
+            ".validate": "newData.isBoolean()"
+          },
+          "pm": {
+            "$a": {
+              ".validate": "$a.matches(/^(note|cal|mem|fee)$/) && newData.isString() && newData.val().matches(/^(all|staff|lead)$/)"
+            }
+          },
+          "$o": {
+            ".validate": false
+          }
+        },
         "$other": {
           ".validate": false
         }
