@@ -216,7 +216,7 @@
         },
         "ro": {
           "$cid": {
-            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && newData.val().matches(/^(lead|vice|sec|acct)$/)"
+            ".validate": "$cid.matches(/^[a-z0-9]{4,12}$/) && newData.isString() && (newData.val().matches(/^(lead|chief|vice|mgr|sec|acct)$/) || (newData.val().beginsWith('c:') && newData.val().length <= 12))"
           }
         },
         "rq": {
